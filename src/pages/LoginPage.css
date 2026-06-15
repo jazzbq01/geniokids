@@ -1,0 +1,98 @@
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(253, 121, 168, .25), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(0, 206, 201, .26), transparent 30%),
+    linear-gradient(135deg, #6c5ce7, #0984e3);
+}
+
+.login-card {
+  width: min(460px, 100%);
+  padding: 34px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .18);
+}
+
+.login-card__logo {
+  font-size: 4rem;
+}
+
+.login-card h1 {
+  font-size: 3rem;
+  margin: 6px 0 8px;
+}
+
+.login-card p {
+  color: #636e72;
+}
+
+.login-card__status {
+  padding: 14px;
+  border-radius: 18px;
+  background: #f1efff;
+  margin: 20px 0;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.login-form input {
+  border: 1px solid #dfe6e9;
+  border-radius: 16px;
+  padding: 14px;
+  outline: none;
+}
+
+.login-message {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  color: #9a3412;
+  padding: 0.75rem;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.role-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin: 1rem 0;
+  padding: 0.35rem;
+  background: #f1f4ff;
+  border-radius: 1rem;
+}
+
+.role-tab {
+  border: 0;
+  border-radius: 0.85rem;
+  padding: 0.75rem;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 800;
+  color: #52607a;
+}
+
+.role-tab--active {
+  background: #ffffff;
+  color: #2d3436;
+  box-shadow: 0 10px 24px rgba(45, 52, 54, 0.1);
+}
+
+.login-hint {
+  font-size: 0.85rem;
+  color: #636e72;
+  text-align: center;
+}

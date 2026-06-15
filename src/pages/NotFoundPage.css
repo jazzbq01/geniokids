@@ -1,0 +1,17 @@
+.notfound-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background: linear-gradient(135deg, #6c5ce7, #00cec9);
+  color: white;
+}
+
+.notfound-page h1 {
+  font-size: 6rem;
+  margin: 0;
+}
+
+.notfound-page p {
+  font-size: 1.3rem;
+}

@@ -1,0 +1,169 @@
+import { useEffect, useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
+import { Link } from 'react-router-dom';
+import { EmptyState } from '../components/EmptyState';
+import { useStudent } from '../context/StudentContext';
+import { educationService } from '../services/educationService';
+import type { Badge, Grade, ProgressAttempt } from '../types/education';
+import './RewardsPage.css';
+
+
+const gradeBadgeMarkers: Record<Extract<Grade, '1-primaria' | '2-primaria' | '3-primaria' | '4-primaria' | '5-primaria' | '6-primaria'>, string[]> = {
+  '1-primaria': ['1p', 'math1', 'primaria-1', '1-primaria'],
+  '2-primaria': ['2p', 'math2', 'primaria-2', '2-primaria'],
+  '3-primaria': ['3p', 'math3', 'primaria-3', '3-primaria'],
+  '4-primaria': ['4p', 'math4', 'primaria-4', '4-primaria'],
+  '5-primaria': ['5p', 'math5', 'primaria-5', '5-primaria'],
+  '6-primaria': ['6p', 'math6', 'primaria-6', '6-primaria']
+};
+
+function detectBadgeGrade(badge: Badge): Grade | null {
+  const id = badge.id.toLowerCase();
+  for (const [grade, markers] of Object.entries(gradeBadgeMarkers) as [Grade, string[]][]) {
+    if (markers.some((marker) => id.includes(marker))) return grade;
+  }
+  return null;
+}
+
+function badgeBelongsToStudentGrade(badge: Badge, grade: Grade) {
+  const badgeGrade = detectBadgeGrade(badge);
+  if (!badgeGrade) return true;
+  return badgeGrade === grade;
+}
+
+function scoreToPercent(score: number) {
+  if (score <= 20) return Math.round((score / 20) * 100);
+  return score;
+}
+
+function computeUnlocked(attempts: ProgressAttempt[]) {
+  const unlocked = new Set<string>();
+  const totalStars = attempts.reduce((sum, attempt) => sum + attempt.stars, 0);
+
+  if (attempts.length >= 1) unlocked.add('badge-first-mission');
+  if (attempts.length >= 10) unlocked.add('badge-10-missions');
+  if (attempts.length >= 20) unlocked.add('badge-20-level');
+  if (attempts.length >= 50) {
+    unlocked.add('badge-50-missions');
+    unlocked.add('badge-50-level');
+  }
+  if (attempts.filter((attempt) => attempt.subjectId === 'mat-primaria').length >= 100) unlocked.add('badge-100-math1');
+  if (attempts.filter((attempt) => attempt.subjectId === 'mat-primaria').length >= 250) unlocked.add('badge-250-math1');
+  if (attempts.some((attempt) => scoreToPercent(attempt.score) >= 100)) unlocked.add('badge-perfect-score');
+  if (totalStars >= 30) unlocked.add('badge-star-collector');
+  if (attempts.some((attempt) => attempt.subjectId.includes('mat') && scoreToPercent(attempt.score) >= 80)) unlocked.add('badge-math-genius');
+  if (attempts.some((attempt) => attempt.subjectId.includes('com'))) unlocked.add('badge-reader');
+  if (attempts.some((attempt) => attempt.subjectId.includes('eng'))) unlocked.add('badge-english');
+  if (attempts.some((attempt) => attempt.subjectId.includes('sci'))) unlocked.add('badge-science');
+  if (attempts.some((attempt) => attempt.difficulty === 'semilla')) unlocked.add('badge-semilla');
+  if (attempts.some((attempt) => attempt.difficulty === 'explorador')) unlocked.add('badge-explorador');
+  if (attempts.some((attempt) => attempt.difficulty === 'aventurero')) unlocked.add('badge-aventurero');
+  if (attempts.some((attempt) => attempt.difficulty === 'estrella')) unlocked.add('badge-estrella');
+  if (attempts.some((attempt) => attempt.difficulty === 'maestro')) unlocked.add('badge-master-genius');
+
+  return unlocked;
+}
+
+export function RewardsPage() {
+  const { activeStudent, hasActiveStudent, refreshSignal } = useStudent();
+  const [attempts, setAttempts] = useState<ProgressAttempt[]>([]);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hasActiveStudent) {
+      setAttempts([]);
+      setBadges([]);
+      setLoading(false);
+      return;
+    }
+
+    async function loadRewards() {
+      try {
+        setLoading(true);
+        setError(null);
+        const [attemptResponse, badgeResponse] = await Promise.all([
+          educationService.getAttempts(activeStudent.id),
+          educationService.getBadges()
+        ]);
+        setAttempts(attemptResponse);
+        setBadges(badgeResponse);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'No se pudieron cargar las medallas.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadRewards();
+  }, [activeStudent.id, hasActiveStudent, refreshSignal]);
+
+  const visibleBadges = useMemo(
+    () => badges.filter((badge) => badgeBelongsToStudentGrade(badge, activeStudent.grade)),
+    [badges, activeStudent.grade]
+  );
+  const unlocked = useMemo(() => computeUnlocked(attempts), [attempts]);
+  const unlockedCount = visibleBadges.filter((badge) => unlocked.has(badge.id)).length;
+  const homePath = activeStudent.level === 'inicial' ? '/inicial' : '/primaria';
+
+  if (!hasActiveStudent) return <EmptyState title="Selecciona un hijo" detail="Primero selecciona un usuario hijo para ver sus medallas reales desde Supabase." />;
+
+  if (loading) return <EmptyState title="Cargando medallas" detail="Consultando logros y estrellas desde Supabase..." />;
+
+  if (error) {
+    return (
+      <section className="rewards-page page">
+        <EmptyState title="No se pudieron cargar las medallas" detail={error} />
+        <Link className="secondary-button" to={homePath}>← Volver al inicio</Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rewards-page page">
+      <header className="page-hero rewards-hero">
+        <div>
+          <span className="eyebrow">Gamificación con propósito</span>
+          <h1>Medallas de {activeStudent.name}</h1>
+          <p>Más niveles, más misiones y recompensas visibles. Así el aprendizaje se vuelve juego, no castigo corporativo con tarea encima.</p>
+        </div>
+        <div className="hero-badge">🏅</div>
+      </header>
+
+      <section className="rewards-summary">
+        <article>
+          <strong>{attempts.length}</strong>
+          <span>misiones completadas</span>
+        </article>
+        <article>
+          <strong>{attempts.reduce((sum, attempt) => sum + attempt.stars, 0)}</strong>
+          <span>estrellas ganadas</span>
+        </article>
+        <article>
+          <strong>{unlockedCount}/{visibleBadges.length}</strong>
+          <span>medallas desbloqueadas</span>
+        </article>
+      </section>
+
+      {!visibleBadges.length && <EmptyState title="Sin medallas para este grado" detail="Carga las medallas correspondientes al grado del estudiante activo." />}
+
+      <div className="badges-grid">
+        {visibleBadges.map((badge) => {
+          const active = unlocked.has(badge.id);
+          return (
+            <article className={`badge-card ${active ? 'badge-card--active' : ''}`} key={badge.id} style={{ '--badge-color': badge.color ?? '#dfe6e9' } as CSSProperties}>
+              <div className="badge-card__icon">{badge.icon}</div>
+              <span className="badge-category">{badge.category ?? 'avance'}</span>
+              <h3>{badge.name}</h3>
+              <p>{badge.description}</p>
+              <small>{active ? 'Desbloqueada ✅' : badge.requirement}</small>
+            </article>
+          );
+        })}
+      </div>
+
+      <Link className="secondary-button" to={homePath}>← Volver al inicio</Link>
+    </section>
+  );
+}

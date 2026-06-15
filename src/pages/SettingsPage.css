@@ -1,0 +1,24 @@
+.settings-hero {
+  background: linear-gradient(135deg, #2d3436, #636e72);
+  color: white;
+}
+
+.settings-hero p {
+  color: rgba(255, 255, 255, .85);
+}
+
+.settings-grid {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.settings-card code {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f6f7fb;
+  margin-top: 8px;
+}
+
+.settings-card li {
+  margin-bottom: 8px;
+}
