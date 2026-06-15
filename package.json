@@ -16,27 +16,24 @@
     "apk:sync": "npm run build && npx cap sync android",
     "apk:open": "npx cap open android"
   },
-  "dependencies": {
-    "@capacitor/android": "latest",
-    "@capacitor/cli": "latest",
-    "@capacitor/core": "latest",
-    "@supabase/supabase-js": "latest",
-    "@vitejs/plugin-react": "latest",
-    "framer-motion": "latest",
-    "lucide-react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "react-router-dom": "latest",
-    "recharts": "latest"
-  },
-  "devDependencies": {
-    "@eslint/js": "latest",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "eslint": "latest",
-    "eslint-plugin-react-hooks": "latest",
-    "eslint-plugin-react-refresh": "latest",
-    "typescript": "latest",
-    "vite": "latest"
-  }
+ "dependencies": {
+  "@supabase/supabase-js": "^2.50.0",
+  "framer-motion": "^12.0.0",
+  "lucide-react": "^0.468.0",
+  "react": "^18.3.1",
+  "react-dom": "^18.3.1",
+  "react-router-dom": "^6.28.0",
+  "recharts": "^2.15.0"
+},
+"devDependencies": {
+  "@eslint/js": "^9.0.0",
+  "@types/react": "^18.3.0",
+  "@types/react-dom": "^18.3.0",
+  "@vitejs/plugin-react": "^4.3.0",
+  "eslint": "^9.0.0",
+  "eslint-plugin-react-hooks": "^5.0.0",
+  "eslint-plugin-react-refresh": "^0.4.0",
+  "typescript": "^5.6.0",
+  "vite": "^5.4.0"
+}
 }
