@@ -8,7 +8,11 @@ import type { Badge, Grade, ProgressAttempt } from '../types/education';
 import './RewardsPage.css';
 
 
-const gradeBadgeMarkers: Record<Extract<Grade, '1-primaria' | '2-primaria' | '3-primaria' | '4-primaria' | '5-primaria' | '6-primaria'>, string[]> = {
+
+const gradeBadgeMarkers: Record<Grade, string[]> = {
+  '3-anios': ['3i', 'inicial-3', '3-anios', 'inicial 3'],
+  '4-anios': ['4i', 'inicial-4', '4-anios', 'inicial 4'],
+  '5-anios': ['5i', 'inicial-5', '5-anios', 'inicial 5'],
   '1-primaria': ['1p', 'math1', 'primaria-1', '1-primaria'],
   '2-primaria': ['2p', 'math2', 'primaria-2', '2-primaria'],
   '3-primaria': ['3p', 'math3', 'primaria-3', '3-primaria'],
@@ -16,6 +20,23 @@ const gradeBadgeMarkers: Record<Extract<Grade, '1-primaria' | '2-primaria' | '3-
   '5-primaria': ['5p', 'math5', 'primaria-5', '5-primaria'],
   '6-primaria': ['6p', 'math6', 'primaria-6', '6-primaria']
 };
+
+const initialGradePrefix: Partial<Record<Grade, '3i' | '4i' | '5i'>> = {
+  '3-anios': '3i',
+  '4-anios': '4i',
+  '5-anios': '5i'
+};
+
+const initialSubjectsByBadgeCode: Record<string, string> = {
+  mat: 'mat-inicial',
+  com: 'com-inicial',
+  ps: 'personal-social-inicial',
+  psi: 'psicomotriz-inicial',
+  cyt: 'ciencia-tecnologia-inicial',
+  art: 'arte-creatividad-inicial'
+};
+
+const initialLevelCodes = ['semilla', 'explorador', 'aventurero', 'estrella', 'maestro'] as const;
 
 function detectBadgeGrade(badge: Badge): Grade | null {
   const id = badge.id.toLowerCase();
@@ -36,7 +57,31 @@ function scoreToPercent(score: number) {
   return score;
 }
 
-function computeUnlocked(attempts: ProgressAttempt[]) {
+function averagePercent(attempts: ProgressAttempt[]) {
+  if (!attempts.length) return 0;
+  return Math.round(attempts.reduce((sum, attempt) => sum + scoreToPercent(attempt.score), 0) / attempts.length);
+}
+
+function addInitialBadges(unlocked: Set<string>, attempts: ProgressAttempt[], grade: Grade) {
+  const gradePrefix = initialGradePrefix[grade];
+  if (!gradePrefix) return;
+
+  Object.entries(initialSubjectsByBadgeCode).forEach(([badgeCode, subjectId]) => {
+    const subjectAttempts = attempts.filter((attempt) => attempt.subjectId === subjectId);
+    if (!subjectAttempts.length) return;
+
+    unlocked.add(`badge-${gradePrefix}-${badgeCode}-avance`);
+    if (subjectAttempts.length >= 250) unlocked.add(`badge-${gradePrefix}-${badgeCode}-completo`);
+
+    initialLevelCodes.forEach((levelCode) => {
+      const levelAttempts = subjectAttempts.filter((attempt) => attempt.difficulty === levelCode);
+      const levelPassed = levelAttempts.length >= 50 || averagePercent(levelAttempts) >= 75;
+      if (levelPassed) unlocked.add(`badge-${gradePrefix}-${badgeCode}-${levelCode}`);
+    });
+  });
+}
+
+function computeUnlocked(attempts: ProgressAttempt[], grade: Grade) {
   const unlocked = new Set<string>();
   const totalStars = attempts.reduce((sum, attempt) => sum + attempt.stars, 0);
 
@@ -54,13 +99,14 @@ function computeUnlocked(attempts: ProgressAttempt[]) {
   if (attempts.some((attempt) => attempt.subjectId.includes('mat') && scoreToPercent(attempt.score) >= 80)) unlocked.add('badge-math-genius');
   if (attempts.some((attempt) => attempt.subjectId.includes('com'))) unlocked.add('badge-reader');
   if (attempts.some((attempt) => attempt.subjectId.includes('eng'))) unlocked.add('badge-english');
-  if (attempts.some((attempt) => attempt.subjectId.includes('sci'))) unlocked.add('badge-science');
+  if (attempts.some((attempt) => attempt.subjectId.includes('sci') || attempt.subjectId.includes('ciencia'))) unlocked.add('badge-science');
   if (attempts.some((attempt) => attempt.difficulty === 'semilla')) unlocked.add('badge-semilla');
   if (attempts.some((attempt) => attempt.difficulty === 'explorador')) unlocked.add('badge-explorador');
   if (attempts.some((attempt) => attempt.difficulty === 'aventurero')) unlocked.add('badge-aventurero');
   if (attempts.some((attempt) => attempt.difficulty === 'estrella')) unlocked.add('badge-estrella');
   if (attempts.some((attempt) => attempt.difficulty === 'maestro')) unlocked.add('badge-master-genius');
 
+  addInitialBadges(unlocked, attempts, grade);
   return unlocked;
 }
 
@@ -103,7 +149,7 @@ export function RewardsPage() {
     () => badges.filter((badge) => badgeBelongsToStudentGrade(badge, activeStudent.grade)),
     [badges, activeStudent.grade]
   );
-  const unlocked = useMemo(() => computeUnlocked(attempts), [attempts]);
+  const unlocked = useMemo(() => computeUnlocked(attempts, activeStudent.grade), [attempts, activeStudent.grade]);
   const unlockedCount = visibleBadges.filter((badge) => unlocked.has(badge.id)).length;
   const homePath = activeStudent.level === 'inicial' ? '/inicial' : '/primaria';
 

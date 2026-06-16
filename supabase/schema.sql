@@ -108,7 +108,7 @@ create table public.difficulty_levels (
 create table public.subjects (
   id text primary key,
   name text not null,
-  area text not null check (area in ('matematica','comunicacion','ingles','ciencia','razonamiento','juegos','nuestro_pais','educacion_financiera','tutoria')),
+  area text not null check (area in ('matematica','comunicacion','ingles','ciencia','ciencia_tecnologia','razonamiento','juegos','nuestro_pais','educacion_financiera','tutoria','personal_social','psicomotriz','arte_creatividad')),
   level text not null check (level in ('inicial','primaria')),
   grades text[] not null,
   icon text not null,
@@ -146,7 +146,7 @@ create table public.activities (
   description text,
   activity_type text not null check (activity_type in ('quiz','matching','memory','trace','story','drag-drop')),
   difficulty_level_id text not null references public.difficulty_levels(id),
-  order_number int not null check (order_number between 1 and 20),
+  order_number int not null check (order_number between 1 and 50),
   points int not null default 1 check (points >= 1),
   is_active boolean not null default true,
   created_at timestamptz not null default now(),

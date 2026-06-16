@@ -35,10 +35,11 @@ function canOpenActivity(activity: Activity, allActivities: Activity[], levels: 
   return isLevelPassed(previousActivities, attempts);
 }
 
-function findNextActivity(current: Activity, allActivities: Activity[]) {
+function findNextActivity(current: Activity, allActivities: Activity[], levels: DifficultyLevel[]) {
+  const levelOrder = new Map(levels.map((level) => [level.id, level.order]));
   const ordered = allActivities
     .slice()
-    .sort((a, b) => a.difficulty.localeCompare(b.difficulty) || a.order - b.order);
+    .sort((a, b) => (levelOrder.get(a.difficulty) ?? 99) - (levelOrder.get(b.difficulty) ?? 99) || a.order - b.order);
   const currentIndex = ordered.findIndex((item) => item.id === current.id);
   return currentIndex >= 0 ? ordered[currentIndex + 1] : undefined;
 }
@@ -89,7 +90,7 @@ export function ActivityPage() {
           if (!canOpenActivity(response, allActivities, levels, attempts)) {
             throw new Error('Nivel bloqueado: primero completa el nivel anterior o logra nota mínima de 15/20.');
           }
-          setNextActivity(findNextActivity(response, allActivities));
+          setNextActivity(findNextActivity(response, allActivities, levels));
         }
         setActivity(response);
       } catch (error) {
@@ -188,7 +189,7 @@ export function ActivityPage() {
             ) : (
               <Link className="primary-button" to={`/subject/${activity.subjectId}`}>Ver curso completado</Link>
             )}
-            <Link className="secondary-button" to={homePath}>Terminar por ahora</Link>
+            <Link className="secondary-button" to={homePath}>Ir al inicio</Link>
             <Link className="secondary-button" to={`/subject/${activity.subjectId}`}>Volver al acordeón</Link>
           </div>
         </motion.div>
@@ -206,7 +207,7 @@ export function ActivityPage() {
         </div>
         <div className="activity-header-actions">
           <div className="activity-points">{activity.points} pts</div>
-          <Link className="activity-exit-button" to={homePath}>Terminar por ahora</Link>
+          <Link className="activity-exit-button" to={homePath}>Ir al inicio</Link>
         </div>
       </header>
 

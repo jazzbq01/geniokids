@@ -1,6 +1,6 @@
 export type EducationLevel = 'inicial' | 'primaria';
 export type Grade = '3-anios' | '4-anios' | '5-anios' | '1-primaria' | '2-primaria' | '3-primaria' | '4-primaria' | '5-primaria' | '6-primaria';
-export type SubjectArea = 'matematica' | 'comunicacion' | 'ingles' | 'ciencia' | 'razonamiento' | 'juegos' | 'nuestro_pais' | 'educacion_financiera' | 'tutoria';
+export type SubjectArea = 'matematica' | 'comunicacion' | 'ingles' | 'ciencia' | 'ciencia_tecnologia' | 'razonamiento' | 'juegos' | 'nuestro_pais' | 'educacion_financiera' | 'tutoria' | 'personal_social' | 'psicomotriz' | 'arte_creatividad';
 export type ActivityType = 'quiz' | 'matching' | 'memory' | 'trace' | 'story' | 'drag-drop';
 export type Difficulty = 'semilla' | 'explorador' | 'aventurero' | 'estrella' | 'maestro';
 export type UserRole = 'parent' | 'child' | 'guest';

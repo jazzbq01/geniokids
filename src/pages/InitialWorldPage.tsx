@@ -43,16 +43,16 @@ export function InitialWorldPage() {
       <header className="page-hero initial-hero">
         <div>
           <span className="eyebrow">🌈 Mundo Inicial</span>
-          <h1>Aprender jugando, tocando y descubriendo</h1>
-          <p>{activeStudent.name} está en {gradeLabels[activeStudent.grade]}. Aquí todo es visual, simple y con retos cortos.</p>
+          <h1>Inicial 3, 4 y 5 años con rutas gamificadas</h1>
+          <p>{activeStudent.name} está en {gradeLabels[activeStudent.grade]}. Aquí trabajamos con misiones visuales, niveles por acordeón, avance progresivo y medallas por edad.</p>
         </div>
         <div className="hero-badge">🧸</div>
       </header>
 
       <section className="initial-mission">
-        <article><strong>1</strong><span>Mirar</span></article>
-        <article><strong>2</strong><span>Tocar</span></article>
-        <article><strong>3</strong><span>Celebrar</span></article>
+        <article><strong>Practicar</strong><span>Misiones por área</span></article>
+        <article><strong>Evaluar</strong><span>Nota inmediata</span></article>
+        <article><strong>Ganar</strong><span>Medallas por edad</span></article>
       </section>
 
       {loading && <p className="muted">Cargando cursos desde Supabase...</p>}
