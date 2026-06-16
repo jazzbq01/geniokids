@@ -80,7 +80,7 @@ function mapLesson(row: any): Lesson {
 }
 
 function mapActivity(row: any): Activity {
-  return {
+  const mappedActivity = {
     id: row.id,
     lessonId: row.lesson_id,
     subjectId: row.subject_id,
@@ -91,6 +91,19 @@ function mapActivity(row: any): Activity {
     difficulty: row.difficulty_level_id,
     order: row.order_number ?? 1,
     points: row.points ?? 1,
+
+    // Campos nuevos para juegos interactivos
+    gameType: row.game_type ?? row.gameType ?? null,
+    gameConfig: row.game_config ?? row.gameConfig ?? {},
+    assetTheme: row.asset_theme ?? row.assetTheme ?? null,
+    estimatedSeconds: row.estimated_seconds ?? row.estimatedSeconds ?? null,
+
+    // También dejamos las claves originales por si algún componente las lee así
+    game_type: row.game_type ?? row.gameType ?? null,
+    game_config: row.game_config ?? row.gameConfig ?? {},
+    asset_theme: row.asset_theme ?? row.assetTheme ?? null,
+    estimated_seconds: row.estimated_seconds ?? row.estimatedSeconds ?? null,
+
     questions: (row.questions ?? [])
       .slice()
       .sort((a: any, b: any) => (a.order_number ?? 1) - (b.order_number ?? 1))
@@ -101,11 +114,27 @@ function mapActivity(row: any): Activity {
         type: question.question_type,
         image: question.image_url ?? undefined,
         audio: question.audio_url ?? undefined,
+        imageUrl: question.image_url ?? null,
+        audioUrl: question.audio_url ?? null,
+        image_url: question.image_url ?? null,
+        audio_url: question.audio_url ?? null,
         options: question.options ?? [],
         correctAnswer: question.correct_answer ?? '',
-        pairs: question.pairs ?? []
+        correct_answer: question.correct_answer ?? '',
+        pairs: question.pairs ?? [],
+
+        // Campos nuevos para juegos interactivos
+        gameConfig: question.game_config ?? question.gameConfig ?? {},
+        game_config: question.game_config ?? question.gameConfig ?? {},
+        feedbackSuccess: question.feedback_success ?? null,
+        feedback_success: question.feedback_success ?? null,
+        feedbackError: question.feedback_error ?? null,
+        feedback_error: question.feedback_error ?? null,
+        hint: question.hint ?? null
       }))
   };
+
+  return mappedActivity as Activity;
 }
 
 function mapBadge(row: any): Badge {
@@ -313,6 +342,10 @@ export const educationService = {
         title,
         description,
         activity_type,
+        game_type,
+        game_config,
+        asset_theme,
+        estimated_seconds,
         difficulty_level_id,
         order_number,
         points,
@@ -326,6 +359,10 @@ export const educationService = {
           correct_answer,
           options,
           pairs,
+          game_config,
+          feedback_success,
+          feedback_error,
+          hint,
           order_number
         )
       `)
@@ -352,6 +389,10 @@ export const educationService = {
         title,
         description,
         activity_type,
+        game_type,
+        game_config,
+        asset_theme,
+        estimated_seconds,
         difficulty_level_id,
         order_number,
         points,
@@ -365,6 +406,10 @@ export const educationService = {
           correct_answer,
           options,
           pairs,
+          game_config,
+          feedback_success,
+          feedback_error,
+          hint,
           order_number
         )
       `)
