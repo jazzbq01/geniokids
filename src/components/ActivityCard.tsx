@@ -1,14 +1,26 @@
 import { Link } from 'react-router-dom';
 import type { Activity, DifficultyLevel } from '../types/education';
+import type { ActivityProgressStatus } from '../utils/progress';
 
 type ActivityCardProps = {
   activity: Activity;
   difficultyLevel?: DifficultyLevel;
-  completed?: boolean;
+  status?: ActivityProgressStatus;
   locked?: boolean;
 };
 
-export function ActivityCard({ activity, difficultyLevel, completed = false, locked = false }: ActivityCardProps) {
+export function ActivityCard({ activity, difficultyLevel, status = 'pending', locked = false }: ActivityCardProps) {
+  const completed = status === 'completed';
+  const retry = status === 'retry';
+  const statusLabel = locked
+    ? 'Bloqueada: completa al menos el 75% del nivel anterior.'
+    : retry
+      ? 'Intento fallido: reintenta hasta responder correctamente.'
+      : completed
+        ? 'Completada correctamente.'
+        : activity.description;
+  const statusIcon = locked ? '🔒' : completed ? '✅' : retry ? '❌' : `${activity.points} pt`;
+
   const content = (
     <>
       <div>
@@ -17,9 +29,9 @@ export function ActivityCard({ activity, difficultyLevel, completed = false, loc
           {difficultyLevel ? `${difficultyLevel.icon} ${difficultyLevel.shortName}` : activity.difficulty}
         </span>
         <h3>{activity.title}</h3>
-        <p>{locked ? 'Bloqueada: completa al menos el 75% del nivel anterior.' : activity.description}</p>
+        <p>{statusLabel}</p>
       </div>
-      <strong>{locked ? '🔒' : completed ? '✅' : `${activity.points} pt`}</strong>
+      <strong>{statusIcon}</strong>
     </>
   );
 
@@ -27,5 +39,12 @@ export function ActivityCard({ activity, difficultyLevel, completed = false, loc
     return <div className="activity-card activity-card--locked">{content}</div>;
   }
 
-  return <Link to={`/activity/${activity.id}`} className={`activity-card ${completed ? 'activity-card--done' : ''}`}>{content}</Link>;
+  return (
+    <Link
+      to={`/activity/${activity.id}`}
+      className={`activity-card ${completed ? 'activity-card--done' : ''} ${retry ? 'activity-card--retry' : ''}`}
+    >
+      {content}
+    </Link>
+  );
 }

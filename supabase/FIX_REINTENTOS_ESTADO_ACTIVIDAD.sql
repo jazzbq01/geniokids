@@ -1,8 +1,10 @@
 -- =============================================================
--- GenioKids - Fix regla de desbloqueo por 75% del nivel anterior
+-- GenioKids - Fix reintentos y estado real de actividad
 -- Ejecutar en Supabase SQL Editor sobre una base ya creada.
--- Objetivo: impedir que un estudiante registre intentos en un nivel
--- superior si no completó al menos el 75% del nivel anterior.
+--
+-- Objetivo:
+-- 1) Permitir registrar intentos fallidos para que la actividad pueda mostrarse con ❌.
+-- 2) Contar para el desbloqueo del 75% solo actividades completadas correctamente.
 -- =============================================================
 
 create or replace function public.enforce_level_75_unlock()
@@ -49,7 +51,6 @@ begin
     raise exception 'La actividad no corresponde al grado del estudiante.';
   end if;
 
-  -- Evita manipulación desde el frontend: se guardan los datos reales de la actividad.
   new.subject_id := v_activity.subject_id;
   new.difficulty_level_id := v_activity.difficulty_level_id;
   new.score := greatest(0, least(100, coalesce(new.score, 0)));
@@ -57,7 +58,6 @@ begin
   new.correct_answers := greatest(0, coalesce(new.correct_answers, 0));
   new.stars := greatest(0, least(3, coalesce(new.stars, 0)));
 
-  -- El primer nivel siempre está habilitado.
   if v_activity.level_order <= 1 then
     return new;
   end if;
@@ -77,13 +77,8 @@ begin
   where a.subject_id = v_activity.subject_id
     and a.grade = v_activity.grade
     and a.difficulty_level_id = v_previous_level_id
-    and a.is_active = true
-    and (
-      (coalesce(aa.total_questions, 0) > 0 and coalesce(aa.correct_answers, 0) >= coalesce(aa.total_questions, 0))
-      or coalesce(aa.score, 0) >= 100
-    );
+    and a.is_active = true;
 
-  -- Si no hay actividades configuradas en el nivel anterior, no bloqueamos para evitar deadlock curricular.
   if coalesce(v_previous_total, 0) = 0 then
     return new;
   end if;
@@ -104,7 +99,7 @@ begin
   v_required_completed := ceiling(v_previous_total * 0.75)::int;
 
   if v_previous_completed < v_required_completed then
-    raise exception 'Nivel bloqueado: debes completar al menos el 75%% del nivel anterior (% de % misiones).',
+    raise exception 'Nivel bloqueado: debes completar correctamente al menos el 75%% del nivel anterior (% de % misiones).',
       v_required_completed,
       v_previous_total;
   end if;
@@ -120,57 +115,6 @@ before insert on public.activity_attempts
 for each row
 execute function public.enforce_level_75_unlock();
 
--- Opcional, pero recomendado: el RPC también registra usando los datos reales de la actividad.
-create or replace function public.submit_child_attempt(
-  p_session_token uuid,
-  p_activity_id text,
-  p_subject_id text,
-  p_difficulty_level_id text,
-  p_score int,
-  p_total_questions int,
-  p_correct_answers int,
-  p_stars int
-)
-returns uuid
-language plpgsql
-security definer set search_path = public
-as $$
-declare
-  v_student_id uuid;
-  v_attempt_id uuid;
-begin
-  select cs.student_id into v_student_id
-  from public.child_sessions cs
-  where cs.session_token = p_session_token and cs.expires_at > now();
-
-  if v_student_id is null then
-    raise exception 'Sesión de hijo vencida o inválida.';
-  end if;
-
-  insert into public.activity_attempts (
-    student_id,
-    activity_id,
-    subject_id,
-    difficulty_level_id,
-    score,
-    total_questions,
-    correct_answers,
-    stars
-  )
-  values (
-    v_student_id,
-    p_activity_id,
-    coalesce(p_subject_id, ''),
-    coalesce(p_difficulty_level_id, ''),
-    p_score,
-    p_total_questions,
-    p_correct_answers,
-    p_stars
-  )
-  returning id into v_attempt_id;
-
-  return v_attempt_id;
-end;
-$$;
-
-grant execute on function public.submit_child_attempt(uuid, text, text, text, int, int, int, int) to anon, authenticated;
+-- Nota operativa:
+-- Los intentos fallidos pueden existir en activity_attempts, pero no cuentan como progreso.
+-- El frontend los usa solo para mostrar ❌ y pedir reintento.

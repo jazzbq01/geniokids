@@ -1,5 +1,6 @@
 import { activities, demoStudents } from '../data/demoContent';
 import type { ProgressAttempt, Student } from '../types/education';
+import { isAttemptPassed } from '../utils/progress';
 
 const STUDENTS_KEY = 'geniokids_students';
 const ACTIVE_STUDENT_KEY = 'geniokids_active_student';
@@ -69,6 +70,6 @@ export const localStore = {
 
   getCompletedActivities(studentId: string) {
     const attempts = this.getAttempts().filter((item) => item.studentId === studentId);
-    return activities.filter((activity) => attempts.some((attempt) => attempt.activityId === activity.id));
+    return activities.filter((activity) => attempts.some((attempt) => attempt.activityId === activity.id && isAttemptPassed(attempt))); 
   }
 };

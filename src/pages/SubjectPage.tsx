@@ -5,19 +5,21 @@ import { EmptyState } from '../components/EmptyState';
 import { useStudent } from '../context/StudentContext';
 import { educationService } from '../services/educationService';
 import type { Activity, Difficulty, DifficultyLevel, Lesson, ProgressAttempt, Subject } from '../types/education';
+import {
+  MIN_PREVIOUS_LEVEL_PERCENT,
+  countPassedActivities,
+  getActivityProgressStatus,
+  getPassedActivityIds,
+  requiredActivitiesFor75,
+  scoreToPercent
+} from '../utils/progress';
 import './SubjectPage.css';
 
 const MIN_PASSING_NOTE = 15;
-const MIN_PREVIOUS_LEVEL_PERCENT = 75;
 
 function scoreToNote20(score: number) {
   if (score <= 20) return Math.max(0, Math.min(20, Math.round(score)));
   return Math.max(0, Math.min(20, Math.round((score / 100) * 20)));
-}
-
-function scoreToPercent(score: number) {
-  if (score <= 20) return Math.max(0, Math.min(100, Math.round((score / 20) * 100)));
-  return Math.max(0, Math.min(100, Math.round(score)));
 }
 
 function levelStats(levelActivities: Activity[], attempts: ProgressAttempt[]) {
@@ -30,7 +32,7 @@ function levelStats(levelActivities: Activity[], attempts: ProgressAttempt[]) {
     if (!current || incomingScore > currentScore) bestByActivity.set(attempt.activityId, attempt);
   });
 
-  const completed = levelActivities.filter((activity) => bestByActivity.has(activity.id)).length;
+  const completed = countPassedActivities(levelActivities, attempts);
   const notes = levelActivities
     .map((activity) => bestByActivity.get(activity.id))
     .filter((attempt): attempt is ProgressAttempt => Boolean(attempt))
@@ -40,7 +42,7 @@ function levelStats(levelActivities: Activity[], attempts: ProgressAttempt[]) {
   const averagePercent = notes.length ? Math.round((averageNote / 20) * 100) : 0;
   const total = levelActivities.length;
   const percent = total ? Math.round((completed / total) * 100) : 0;
-  const requiredCompleted = total ? Math.ceil((total * MIN_PREVIOUS_LEVEL_PERCENT) / 100) : 0;
+  const requiredCompleted = requiredActivitiesFor75(total);
   const passedByCompletion = completed >= total && total > 0;
   const passedByRequiredCompletion = requiredCompleted > 0 && completed >= requiredCompleted;
   const passedByScore = averageNote >= MIN_PASSING_NOTE && notes.length > 0;
@@ -101,7 +103,7 @@ export function SubjectPage() {
     loadSubjectData();
   }, [subjectId, activeStudent.grade, activeStudent.id, refreshSignal]);
 
-  const completedIds = useMemo(() => new Set(attempts.map((attempt) => attempt.activityId)), [attempts]);
+  const completedIds = useMemo(() => getPassedActivityIds(attempts), [attempts]);
 
   const levelState = useMemo(() => {
     const state = new Map<Difficulty, { unlocked: boolean; stats: ReturnType<typeof levelStats>; previous?: ReturnType<typeof levelStats> }>();
@@ -222,7 +224,7 @@ export function SubjectPage() {
                       key={activity.id}
                       activity={activity}
                       difficultyLevel={level}
-                      completed={completedIds.has(activity.id)}
+                      status={getActivityProgressStatus(activity.id, attempts)}
                       locked={locked}
                     />
                   ))}

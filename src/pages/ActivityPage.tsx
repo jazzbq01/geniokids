@@ -6,9 +6,8 @@ import GameRenderer from '../components/games/GameRenderer';
 import { useStudent } from '../context/StudentContext';
 import { educationService } from '../services/educationService';
 import type { Activity, DifficultyLevel, ProgressAttempt } from '../types/education';
+import { countPassedActivities, isAttemptPassed, requiredActivitiesFor75 } from '../utils/progress';
 import './ActivityPage.css';
-
-const MIN_PREVIOUS_LEVEL_PERCENT = 75;
 
 type GameResult = {
   score: number;
@@ -29,20 +28,9 @@ type LevelProgressSummary = {
   subjectPercent: number;
 };
 
-function getCompletedIds(attempts: ProgressAttempt[]) {
-  return new Set(attempts.map((attempt) => attempt.activityId));
-}
-
-function countCompletedActivities(levelActivities: Activity[], attempts: ProgressAttempt[]) {
-  const completedActivities = getCompletedIds(attempts);
-  return levelActivities.filter((activity) => completedActivities.has(activity.id)).length;
-}
-
 function isLevelPassed(levelActivities: Activity[], attempts: ProgressAttempt[]) {
-  const completed = countCompletedActivities(levelActivities, attempts);
-  const requiredCompleted = levelActivities.length
-    ? Math.ceil((levelActivities.length * MIN_PREVIOUS_LEVEL_PERCENT) / 100)
-    : 0;
+  const completed = countPassedActivities(levelActivities, attempts);
+  const requiredCompleted = requiredActivitiesFor75(levelActivities.length);
 
   return requiredCompleted > 0 && completed >= requiredCompleted;
 }
@@ -99,12 +87,12 @@ function buildLevelProgressSummary(
   attempts: ProgressAttempt[]
 ): LevelProgressSummary {
   const levelActivities = allActivities.filter((item) => item.difficulty === currentActivity.difficulty);
-  const levelCompleted = countCompletedActivities(levelActivities, attempts);
+  const levelCompleted = countPassedActivities(levelActivities, attempts);
   const levelTotal = levelActivities.length;
   const levelPercent = levelTotal ? Math.round((levelCompleted / levelTotal) * 100) : 0;
-  const requiredCompleted = levelTotal ? Math.ceil((levelTotal * MIN_PREVIOUS_LEVEL_PERCENT) / 100) : 0;
+  const requiredCompleted = requiredActivitiesFor75(levelTotal);
   const remainingForUnlock = Math.max(requiredCompleted - levelCompleted, 0);
-  const subjectCompleted = countCompletedActivities(allActivities, attempts);
+  const subjectCompleted = countPassedActivities(allActivities, attempts);
   const subjectTotal = allActivities.length;
   const subjectPercent = subjectTotal ? Math.round((subjectCompleted / subjectTotal) * 100) : 0;
 
@@ -151,6 +139,7 @@ export function ActivityPage() {
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [retrySaving, setRetrySaving] = useState(false);
 
   useEffect(() => {
     setActivity(undefined);
@@ -166,6 +155,7 @@ export function ActivityPage() {
     setFeedback(null);
     setSaveError(null);
     setGameResult(null);
+    setRetrySaving(false);
   }, [activityId]);
 
   useEffect(() => {
@@ -249,8 +239,8 @@ export function ActivityPage() {
 
   const homePath = activeStudent.level === 'inicial' ? '/inicial' : '/primaria';
 
-  async function finishActivity(finalScore: number, finalTotalQuestions: number, finalCorrectAnswers: number, finalStars: number) {
-    if (!activity) return;
+  async function saveAttemptRecord(finalScore: number, finalTotalQuestions: number, finalCorrectAnswers: number, finalStars: number) {
+    if (!activity) return null;
 
     const attempt: ProgressAttempt = {
       id: crypto.randomUUID(),
@@ -275,10 +265,18 @@ export function ActivityPage() {
       setCompletionSummary(buildLevelProgressSummary(activity, courseActivities, updatedAttempts));
       setNextActivity(findNextAvailableActivity(activity, courseActivities, difficultyLevels, updatedAttempts));
       refresh();
+      return updatedAttempts;
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'No se pudo guardar el avance.');
       setCompletionSummary(buildLevelProgressSummary(activity, courseActivities, attempts));
-    } finally {
+      return null;
+    }
+  }
+
+  async function finishActivity(finalScore: number, finalTotalQuestions: number, finalCorrectAnswers: number, finalStars: number) {
+    const updatedAttempts = await saveAttemptRecord(finalScore, finalTotalQuestions, finalCorrectAnswers, finalStars);
+
+    if (updatedAttempts?.some((attempt) => attempt.activityId === activity?.id && isAttemptPassed(attempt))) {
       setFinished(true);
     }
   }
@@ -291,17 +289,27 @@ export function ActivityPage() {
     const activeQuestion = question;
     setSelected(value);
 
-    const isCorrect = value === activeQuestion.correctAnswer || activeQuestion.type === 'match';
+    const expectedAnswer = activeQuestion.correctAnswer ?? (activeQuestion as any).correct_answer;
+    const isCorrect = value === expectedAnswer || activeQuestion.type === 'match';
 
     setFeedback(isCorrect ? 'correct' : 'wrong');
 
-    if (isCorrect) {
-      setCorrectAnswers((prev) => prev + 1);
+    if (!isCorrect) {
+      const totalQuestions = activity.questions.length || 1;
+      const partialCorrect = correctAnswers;
+      const partialScore = Math.round((partialCorrect / totalQuestions) * 100);
+
+      setRetrySaving(true);
+      await saveAttemptRecord(partialScore, totalQuestions, partialCorrect, 0);
+      setRetrySaving(false);
+      return;
     }
+
+    setCorrectAnswers((prev) => prev + 1);
 
     setTimeout(async () => {
       if (currentIndex + 1 >= activity.questions.length) {
-        const finalCorrect = isCorrect ? correctAnswers + 1 : correctAnswers;
+        const finalCorrect = correctAnswers + 1;
         const finalScore = Math.round((finalCorrect / activity.questions.length) * 100);
         const finalStars = finalScore >= 90 ? 3 : finalScore >= 70 ? 2 : finalScore > 0 ? 1 : 0;
 
@@ -312,6 +320,11 @@ export function ActivityPage() {
         setFeedback(null);
       }
     }, 900);
+  }
+
+  function retryCurrentQuestion() {
+    setSelected(null);
+    setFeedback(null);
   }
 
   function completeMatching() {
@@ -337,7 +350,12 @@ export function ActivityPage() {
 
     setCorrectAnswers(finalCorrectAnswers);
 
-    await finishActivity(finalScore, finalTotalQuestions, finalCorrectAnswers, finalStars);
+    if (finalCorrectAnswers >= finalTotalQuestions) {
+      await finishActivity(finalScore, finalTotalQuestions, finalCorrectAnswers, finalStars);
+      return;
+    }
+
+    await saveAttemptRecord(finalScore, finalTotalQuestions, finalCorrectAnswers, 0);
   }
 
   if (finished) {
@@ -431,11 +449,29 @@ export function ActivityPage() {
           </div>
         </header>
 
-        <GameRenderer
-          activity={activity}
-          question={question}
-          onComplete={handleGameComplete}
-        />
+        {gameResult && gameResult.correctAnswers < gameResult.totalQuestions ? (
+          <article className="question-card">
+            <h2>Necesita reintentar esta misión</h2>
+            <p className="question-helper">
+              Resultado: {gameResult.correctAnswers}/{gameResult.totalQuestions}. Esta actividad queda marcada con ❌ y no suma al 75% hasta completarla correctamente.
+            </p>
+            {saveError && <p className="activity-save-error">{saveError}</p>}
+            <div className="retry-actions">
+              <button className="primary-button" type="button" onClick={() => setGameResult(null)}>
+                Reintentar
+              </button>
+              <Link className="secondary-button" to={`/subject/${activity.subjectId}`}>
+                Volver al acordeón
+              </Link>
+            </div>
+          </article>
+        ) : (
+          <GameRenderer
+            activity={activity}
+            question={question}
+            onComplete={handleGameComplete}
+          />
+        )}
       </section>
     );
   }
@@ -501,7 +537,9 @@ export function ActivityPage() {
               <button
                 key={option.id}
                 type="button"
-                className={`answer-button ${selected === option.value ? 'answer-button--selected' : ''}`}
+                className={`answer-button ${selected === option.value ? 'answer-button--selected' : ''} ${
+                  selected === option.value && feedback === 'wrong' ? 'answer-button--wrong' : ''
+                } ${selected === option.value && feedback === 'correct' ? 'answer-button--correct' : ''}`}
                 onClick={() => handleSelect(option.value)}
               >
                 {option.image && <span>{option.image}</span>}
@@ -513,7 +551,18 @@ export function ActivityPage() {
 
         {feedback && (
           <div className={`feedback feedback--${feedback}`}>
-            {feedback === 'correct' ? '¡Excelente! 🎉' : 'Casi, vuelve a practicar 💪'}
+            {feedback === 'correct' ? '¡Excelente! 🎉' : 'Respuesta incorrecta. Reintenta esta pregunta 💪'}
+          </div>
+        )}
+
+        {feedback === 'wrong' && (
+          <div className="retry-actions">
+            <p className="retry-status">
+              {retrySaving ? 'Guardando intento fallido...' : 'Esta misión queda marcada con ❌ hasta que responda correctamente.'}
+            </p>
+            <button className="primary-button" type="button" onClick={retryCurrentQuestion} disabled={retrySaving}>
+              Reintentar
+            </button>
           </div>
         )}
       </motion.article>

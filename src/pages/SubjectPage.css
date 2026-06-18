@@ -158,6 +158,11 @@
   border-color: #86efac;
 }
 
+.activity-card--retry {
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
 .mission-number {
   display: inline-flex;
   margin-right: 0.4rem;

@@ -1,9 +1,11 @@
 import { subjects } from '../data/demoContent';
 import type { ProgressAttempt, Recommendation } from '../types/education';
+import { isAttemptPassed } from '../utils/progress';
 
 export function summarizeAttempts(attempts: ProgressAttempt[], subjectCatalog = subjects) {
+  const passedAttempts = attempts.filter(isAttemptPassed);
   const bySubject = subjectCatalog.map((subject) => {
-    const subjectAttempts = attempts.filter((attempt) => attempt.subjectId === subject.id);
+    const subjectAttempts = passedAttempts.filter((attempt) => attempt.subjectId === subject.id);
     const average = subjectAttempts.length
       ? Math.round(subjectAttempts.reduce((sum, item) => sum + item.score, 0) / subjectAttempts.length)
       : 0;
@@ -20,15 +22,15 @@ export function summarizeAttempts(attempts: ProgressAttempt[], subjectCatalog = 
   }).filter((item) => item.attempts > 0);
 
   const totalStars = bySubject.reduce((sum, item) => sum + item.stars, 0);
-  const averageScore = attempts.length
-    ? Math.round(attempts.reduce((sum, item) => sum + item.score, 0) / attempts.length)
+  const averageScore = passedAttempts.length
+    ? Math.round(passedAttempts.reduce((sum, item) => sum + item.score, 0) / passedAttempts.length)
     : 0;
 
   return {
     bySubject,
     totalStars,
     averageScore,
-    completed: attempts.length
+    completed: passedAttempts.length
   };
 }
 

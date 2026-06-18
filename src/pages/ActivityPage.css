@@ -66,6 +66,17 @@
   outline: 4px solid rgba(108, 92, 231, .3);
 }
 
+
+.answer-button--correct {
+  outline: 4px solid rgba(0, 184, 148, .35);
+  background: #e8fff8;
+}
+
+.answer-button--wrong {
+  outline: 4px solid rgba(214, 48, 49, .25);
+  background: #fff1f1;
+}
+
 .feedback {
   margin-top: 20px;
   padding: 18px;
@@ -207,4 +218,11 @@
   max-width: 620px;
   color: #475569;
   font-weight: 800;
+}
+
+
+.retry-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
 }

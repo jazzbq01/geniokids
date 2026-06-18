@@ -1,4 +1,5 @@
 import type { Activity, Difficulty, DifficultyLevel, ProgressAttempt, Student, Subject } from '../types/education';
+import { isAttemptPassed, scoreToPercent } from './progress';
 import { gradeLabels } from './gradeLabels';
 
 const MIN_PASSING_NOTE = 15;
@@ -37,11 +38,6 @@ function scoreToNote20(score: number) {
   return Math.max(0, Math.min(20, Math.round((score / 100) * 20)));
 }
 
-function scoreToPercent(score: number) {
-  if (score <= 20) return Math.max(0, Math.min(100, Math.round((score / 20) * 100)));
-  return Math.max(0, Math.min(100, Math.round(score)));
-}
-
 function bestAttemptsByActivity(attempts: ProgressAttempt[]) {
   const best = new Map<string, ProgressAttempt>();
 
@@ -62,15 +58,15 @@ function levelLabel(levelId: Difficulty, levels: DifficultyLevel[]) {
 
 function activityStatus(attempt?: ProgressAttempt) {
   if (!attempt) return 'Pendiente';
-  return scoreToNote20(attempt.score) >= MIN_PASSING_NOTE ? 'Aprobada' : 'Por reforzar';
+  return isAttemptPassed(attempt) ? 'Completada' : 'Reintentar';
 }
 
 function recommendationFor(attempt?: ProgressAttempt) {
   if (!attempt) return 'Aún no resuelta. Sugerir práctica corta de 10 minutos.';
   const note = scoreToNote20(attempt.score);
   if (note >= 18) return 'Muy buen dominio. Puede avanzar o repetir como repaso rápido.';
-  if (note >= MIN_PASSING_NOTE) return 'Logró el mínimo. Conviene reforzar antes de subir dificultad.';
-  return 'Requiere refuerzo. Repetir la actividad con acompañamiento.';
+  if (isAttemptPassed(attempt)) return 'Actividad completada correctamente. Puede seguir avanzando.';
+  return 'No suma al 75%. Debe reintentar hasta responder correctamente.';
 }
 
 function worksheetXml(name: string, sections: WorksheetSection[]) {
@@ -102,10 +98,14 @@ function worksheetXml(name: string, sections: WorksheetSection[]) {
 
 function buildSubjectSections(subject: Subject, activities: Activity[], attempts: ProgressAttempt[], levels: DifficultyLevel[], student: Student): WorksheetSection[] {
   const best = bestAttemptsByActivity(attempts.filter((attempt) => attempt.subjectId === subject.id));
-  const completed = activities.filter((activity) => best.has(activity.id));
-  const approved = completed.filter((activity) => scoreToNote20(best.get(activity.id)?.score ?? 0) >= MIN_PASSING_NOTE);
-  const averageNote = completed.length
-    ? Math.round(completed.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / completed.length)
+  const attempted = activities.filter((activity) => best.has(activity.id));
+  const completed = activities.filter((activity) => {
+    const attempt = best.get(activity.id);
+    return attempt ? isAttemptPassed(attempt) : false;
+  });
+  const approved = completed;
+  const averageNote = attempted.length
+    ? Math.round(attempted.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / attempted.length)
     : 0;
 
   const generalRows: ExcelCellValue[][] = [
@@ -113,8 +113,8 @@ function buildSubjectSections(subject: Subject, activities: Activity[], attempts
     ['Grado / edad', gradeLabels[student.grade] ?? student.grade],
     ['Curso', subject.name],
     ['Actividades del curso', activities.length],
-    ['Actividades resueltas', completed.length],
-    ['Actividades aprobadas', approved.length],
+    ['Actividades completadas', completed.length],
+    ['Actividades para reintentar', attempted.length - completed.length],
     ['Promedio del curso /20', averageNote],
     ['Regla de avance', 'Completar mínimo el 75% del nivel anterior para desbloquear el siguiente']
   ];
@@ -133,10 +133,14 @@ function buildSubjectSections(subject: Subject, activities: Activity[], attempts
   levels.forEach((level) => {
     const levelActivities = activities.filter((activity) => activity.difficulty === level.id);
     if (!levelActivities.length) return;
-    const levelCompleted = levelActivities.filter((activity) => best.has(activity.id));
-    const levelApproved = levelCompleted.filter((activity) => scoreToNote20(best.get(activity.id)?.score ?? 0) >= MIN_PASSING_NOTE);
-    const levelAverage = levelCompleted.length
-      ? Math.round(levelCompleted.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / levelCompleted.length)
+    const levelAttempted = levelActivities.filter((activity) => best.has(activity.id));
+    const levelCompleted = levelActivities.filter((activity) => {
+      const attempt = best.get(activity.id);
+      return attempt ? isAttemptPassed(attempt) : false;
+    });
+    const levelApproved = levelCompleted;
+    const levelAverage = levelAttempted.length
+      ? Math.round(levelAttempted.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / levelAttempted.length)
       : 0;
     const advance = levelActivities.length ? Math.round((levelCompleted.length / levelActivities.length) * 100) : 0;
     const passed = advance >= 75;
@@ -221,18 +225,26 @@ function buildSummarySheet(input: CourseReportInput): WorksheetSection[] {
 
   subjects.forEach((subject) => {
     const activities = activitiesBySubject[subject.id] ?? [];
-    const subjectCompleted = activities.filter((activity) => best.has(activity.id));
-    const subjectApproved = subjectCompleted.filter((activity) => scoreToNote20(best.get(activity.id)?.score ?? 0) >= MIN_PASSING_NOTE);
-    const average = subjectCompleted.length
-      ? Math.round(subjectCompleted.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / subjectCompleted.length)
+    const subjectAttempted = activities.filter((activity) => best.has(activity.id));
+    const subjectCompleted = activities.filter((activity) => {
+    const attempt = best.get(activity.id);
+    return attempt ? isAttemptPassed(attempt) : false;
+  });
+    const subjectApproved = subjectCompleted;
+    const average = subjectAttempted.length
+      ? Math.round(subjectAttempted.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / subjectAttempted.length)
       : 0;
     const advance = activities.length ? Math.round((subjectCompleted.length / activities.length) * 100) : 0;
     const currentLevel = levels.find((level) => {
       const levelActivities = activities.filter((activity) => activity.difficulty === level.id);
       if (!levelActivities.length) return false;
-      const completed = levelActivities.filter((activity) => best.has(activity.id));
-      const avg = completed.length
-        ? Math.round(completed.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / completed.length)
+      const completed = levelActivities.filter((activity) => {
+      const attempt = best.get(activity.id);
+      return attempt ? isAttemptPassed(attempt) : false;
+    });
+      const levelAttempted = levelActivities.filter((activity) => best.has(activity.id));
+      const avg = levelAttempted.length
+        ? Math.round(levelAttempted.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / levelAttempted.length)
         : 0;
       return completed.length < levelActivities.length || avg < MIN_PASSING_NOTE;
     });

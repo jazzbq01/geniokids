@@ -272,7 +272,11 @@ begin
   where a.subject_id = v_activity.subject_id
     and a.grade = v_activity.grade
     and a.difficulty_level_id = v_previous_level_id
-    and a.is_active = true;
+    and a.is_active = true
+    and (
+      (coalesce(aa.total_questions, 0) > 0 and coalesce(aa.correct_answers, 0) >= coalesce(aa.total_questions, 0))
+      or coalesce(aa.score, 0) >= 100
+    );
 
   -- Si no hay actividades configuradas en el nivel anterior, no bloqueamos para evitar deadlock curricular.
   if coalesce(v_previous_total, 0) = 0 then
@@ -286,7 +290,11 @@ begin
     and a.subject_id = v_activity.subject_id
     and a.grade = v_activity.grade
     and a.difficulty_level_id = v_previous_level_id
-    and a.is_active = true;
+    and a.is_active = true
+    and (
+      (coalesce(aa.total_questions, 0) > 0 and coalesce(aa.correct_answers, 0) >= coalesce(aa.total_questions, 0))
+      or coalesce(aa.score, 0) >= 100
+    );
 
   v_required_completed := ceiling(v_previous_total * 0.75)::int;
 

@@ -19,7 +19,7 @@ El contenido no copia páginas ni imágenes del PDF. Usa el índice y los temas 
 El siguiente nivel se desbloquea si el estudiante:
 
 - completa el nivel anterior, o
-- obtiene promedio mínimo 15/20 en el nivel anterior.
+- completa mínimo el 75% de actividades del nivel anterior.
 
 ## Carga futura de libros
 
