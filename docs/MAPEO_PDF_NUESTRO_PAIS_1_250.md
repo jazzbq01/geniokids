@@ -33,7 +33,11 @@ Se creó el curso **Nuestro País** para Primaria y se cargó contenido completo
 - 250 actividades en total.
 - 1 pregunta por actividad.
 - 1 punto por actividad.
+<<<<<<< HEAD
 - Desbloqueo: completar mínimo el 75% de actividades del nivel anterior.
+=======
+- Desbloqueo: promedio mínimo 15/20 o completar el nivel anterior.
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 
 ## Archivo SQL
 

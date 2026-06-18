@@ -10,6 +10,7 @@ create extension if not exists pgcrypto with schema extensions;
 -- 0. Limpieza total
 -- -----------------------------
 drop view if exists public.student_progress_report cascade;
+<<<<<<< HEAD
 do $$
 begin
   if to_regclass('public.activity_attempts') is not null then
@@ -18,6 +19,8 @@ begin
 end;
 $$;
 drop function if exists public.enforce_level_75_unlock() cascade;
+=======
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 drop view if exists public.student_level_progress_report cascade;
 drop trigger if exists on_auth_user_created on auth.users;
 drop function if exists public.handle_new_user() cascade;
@@ -196,6 +199,7 @@ create table public.activity_attempts (
   created_at timestamptz not null default now()
 );
 
+<<<<<<< HEAD
 
 -- -----------------------------
 -- 8.1 Regla de desbloqueo de niveles
@@ -305,6 +309,8 @@ before insert on public.activity_attempts
 for each row
 execute function public.enforce_level_75_unlock();
 
+=======
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 -- -----------------------------
 -- 9. Medallas
 -- -----------------------------

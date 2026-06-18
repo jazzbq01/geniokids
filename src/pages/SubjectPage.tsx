@@ -8,7 +8,11 @@ import type { Activity, Difficulty, DifficultyLevel, Lesson, ProgressAttempt, Su
 import './SubjectPage.css';
 
 const MIN_PASSING_NOTE = 15;
+<<<<<<< HEAD
 const MIN_PREVIOUS_LEVEL_PERCENT = 75;
+=======
+const MIN_PASSING_PERCENT = 75;
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 
 function scoreToNote20(score: number) {
   if (score <= 20) return Math.max(0, Math.min(20, Math.round(score)));
@@ -38,15 +42,21 @@ function levelStats(levelActivities: Activity[], attempts: ProgressAttempt[]) {
 
   const averageNote = notes.length ? Math.round(notes.reduce((sum, note) => sum + note, 0) / notes.length) : 0;
   const averagePercent = notes.length ? Math.round((averageNote / 20) * 100) : 0;
+<<<<<<< HEAD
   const total = levelActivities.length;
   const percent = total ? Math.round((completed / total) * 100) : 0;
   const requiredCompleted = total ? Math.ceil((total * MIN_PREVIOUS_LEVEL_PERCENT) / 100) : 0;
   const passedByCompletion = completed >= total && total > 0;
   const passedByRequiredCompletion = requiredCompleted > 0 && completed >= requiredCompleted;
+=======
+  const percent = levelActivities.length ? Math.round((completed / levelActivities.length) * 100) : 0;
+  const passedByCompletion = completed >= levelActivities.length && levelActivities.length > 0;
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   const passedByScore = averageNote >= MIN_PASSING_NOTE && notes.length > 0;
 
   return {
     completed,
+<<<<<<< HEAD
     total,
     requiredCompleted,
     averageNote,
@@ -55,6 +65,13 @@ function levelStats(levelActivities: Activity[], attempts: ProgressAttempt[]) {
     passed: passedByRequiredCompletion,
     passedByCompletion,
     passedByRequiredCompletion,
+=======
+    averageNote,
+    averagePercent,
+    percent,
+    passed: passedByCompletion || passedByScore,
+    passedByCompletion,
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
     passedByScore
   };
 }
@@ -143,7 +160,11 @@ export function SubjectPage() {
         <div>
           <span className="eyebrow">Ruta bloqueada por mérito</span>
           <h2>{completedActivities}/{totalActivities} misiones completadas</h2>
+<<<<<<< HEAD
           <p>Para desbloquear el siguiente nivel: completa al menos el {MIN_PREVIOUS_LEVEL_PERCENT}% del nivel anterior. La nota queda como rendimiento académico; el avance y el desbloqueo se miden por actividades completadas.</p>
+=======
+          <p>Para desbloquear el siguiente nivel: completa el anterior o logra promedio mínimo de {MIN_PASSING_NOTE}/20 ({MIN_PASSING_PERCENT}%).</p>
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
           <p>Meta del curso: {totalPoints} puntos. Avance actual: {earnedPoints} puntos.</p>
         </div>
         <div className="progress-ring">
@@ -181,6 +202,7 @@ export function SubjectPage() {
 
           const locked = !state.unlocked;
           const isOpen = !locked && openLevel === level.id;
+<<<<<<< HEAD
           const previous = state.previous;
           const unlockReason = state.stats.passedByCompletion
             ? 'Nivel completado al 100%.'
@@ -189,6 +211,15 @@ export function SubjectPage() {
               : locked && previous
                 ? `Bloqueado: el nivel anterior tiene ${previous.completed}/${previous.total} misiones (${previous.percent}%). Necesita ${previous.requiredCompleted} misiones como mínimo.`
                 : 'En progreso. Completa al menos el 75% para habilitar el siguiente nivel.';
+=======
+          const unlockReason = state.stats.passedByCompletion
+            ? 'Nivel superado por completar todas las misiones.'
+            : state.stats.passedByScore
+              ? `Nivel superado por nota mínima: ${state.stats.averageNote}/20.`
+              : locked
+                ? 'Bloqueado hasta superar el nivel anterior.'
+                : 'En progreso. Puedes practicar misión por misión.';
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 
           return (
             <article className={`level-section ${locked ? 'level-section--locked' : ''}`} key={level.id} style={{ '--level-color': level.color } as React.CSSProperties}>
@@ -203,12 +234,21 @@ export function SubjectPage() {
                 <div>
                   <span className="eyebrow">{level.stageLabel} · {level.shortName}</span>
                   <h3>{level.name}</h3>
+<<<<<<< HEAD
                   <p>{locked ? `Necesita completar al menos el ${MIN_PREVIOUS_LEVEL_PERCENT}% del nivel anterior.` : level.description}</p>
                 </div>
                 <div className="level-progress">
                   <strong>{state.stats.completed}/{levelActivities.length}</strong>
                   <span>Meta {state.stats.requiredCompleted}/{levelActivities.length} · {state.stats.percent}%</span>
                   <small>{state.stats.passed ? '75% cumplido ✅' : locked ? 'Por desbloquear' : `Faltan ${Math.max(state.stats.requiredCompleted - state.stats.completed, 0)} misiones`}</small>
+=======
+                  <p>{locked ? `Necesita aprobar el nivel anterior con ${MIN_PASSING_NOTE}/20 o completarlo al 100%.` : level.description}</p>
+                </div>
+                <div className="level-progress">
+                  <strong>{state.stats.completed}/{levelActivities.length}</strong>
+                  <span>{state.stats.percent}% · Nota {state.stats.averageNote}/20</span>
+                  <small>{state.stats.passed ? 'Nivel superado ✅' : locked ? 'Por desbloquear' : 'En progreso'}</small>
+>>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
                 </div>
                 <span className="accordion-caret">{locked ? '🔒' : isOpen ? '▲' : '▼'}</span>
               </button>
