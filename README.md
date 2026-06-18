@@ -83,11 +83,7 @@ Esta versión incluye una carga curricular de **Matemática 1.º primaria** basa
 - 50 actividades por nivel.
 - 250 actividades en total.
 - 1 punto por actividad.
-<<<<<<< HEAD
 - Desbloqueo por completar mínimo el **75% de actividades** del nivel anterior.
-=======
-- Desbloqueo por promedio mínimo **15/20** o por completar el nivel anterior.
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 
 Archivo recomendado para cargar solo este curso sin borrar usuarios:
 

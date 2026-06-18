@@ -66,20 +66,6 @@
   outline: 4px solid rgba(108, 92, 231, .3);
 }
 
-<<<<<<< HEAD
-
-.answer-button--correct {
-  outline: 4px solid rgba(0, 184, 148, .35);
-  background: #e8fff8;
-}
-
-.answer-button--wrong {
-  outline: 4px solid rgba(214, 48, 49, .25);
-  background: #fff1f1;
-}
-
-=======
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 .feedback {
   margin-top: 20px;
   padding: 18px;
@@ -176,7 +162,6 @@
     justify-items: start;
   }
 }
-<<<<<<< HEAD
 
 .completion-summary {
   max-width: 620px;
@@ -223,12 +208,3 @@
   color: #475569;
   font-weight: 800;
 }
-
-
-.retry-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 16px;
-}
-=======
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694

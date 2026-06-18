@@ -8,11 +8,7 @@ import { educationService } from '../services/educationService';
 import type { Activity, DifficultyLevel, ProgressAttempt } from '../types/education';
 import './ActivityPage.css';
 
-<<<<<<< HEAD
 const MIN_PREVIOUS_LEVEL_PERCENT = 75;
-=======
-const MIN_PASSING_NOTE = 15;
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 
 type GameResult = {
   score: number;
@@ -21,7 +17,6 @@ type GameResult = {
   stars: number;
 };
 
-<<<<<<< HEAD
 type LevelProgressSummary = {
   levelCompleted: number;
   levelTotal: number;
@@ -50,35 +45,6 @@ function isLevelPassed(levelActivities: Activity[], attempts: ProgressAttempt[])
     : 0;
 
   return requiredCompleted > 0 && completed >= requiredCompleted;
-=======
-function scoreToNote20(score: number) {
-  if (score <= 20) return Math.max(0, Math.min(20, Math.round(score)));
-  return Math.max(0, Math.min(20, Math.round((score / 100) * 20)));
-}
-
-function isLevelPassed(levelActivities: Activity[], attempts: ProgressAttempt[]) {
-  const bestByActivity = new Map<string, number>();
-
-  attempts.forEach((attempt) => {
-    const current = bestByActivity.get(attempt.activityId) ?? -1;
-    const incoming = scoreToNote20(attempt.score);
-
-    if (incoming > current) {
-      bestByActivity.set(attempt.activityId, incoming);
-    }
-  });
-
-  const completed = levelActivities.filter((activity) => bestByActivity.has(activity.id)).length;
-  const notes = levelActivities
-    .map((activity) => bestByActivity.get(activity.id))
-    .filter((score): score is number => typeof score === 'number');
-
-  const averageNote = notes.length
-    ? Math.round(notes.reduce((sum, score) => sum + score, 0) / notes.length)
-    : 0;
-
-  return completed >= levelActivities.length || averageNote >= MIN_PASSING_NOTE;
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 }
 
 function canOpenActivity(
@@ -99,24 +65,16 @@ function canOpenActivity(
   return isLevelPassed(previousActivities, attempts);
 }
 
-<<<<<<< HEAD
 function orderedActivities(allActivities: Activity[], levels: DifficultyLevel[]) {
   const levelOrder = new Map(levels.map((level) => [level.id, level.order]));
 
   return allActivities
-=======
-function findNextActivity(current: Activity, allActivities: Activity[], levels: DifficultyLevel[]) {
-  const levelOrder = new Map(levels.map((level) => [level.id, level.order]));
-
-  const ordered = allActivities
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
     .slice()
     .sort(
       (a, b) =>
         (levelOrder.get(a.difficulty) ?? 99) - (levelOrder.get(b.difficulty) ?? 99) ||
         a.order - b.order
     );
-<<<<<<< HEAD
 }
 
 function findNextAvailableActivity(
@@ -161,12 +119,6 @@ function buildLevelProgressSummary(
     subjectTotal,
     subjectPercent
   };
-=======
-
-  const currentIndex = ordered.findIndex((item) => item.id === current.id);
-
-  return currentIndex >= 0 ? ordered[currentIndex + 1] : undefined;
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 }
 
 function getQuestionGameConfig(question: any) {
@@ -186,13 +138,10 @@ export function ActivityPage() {
 
   const [activity, setActivity] = useState<Activity | undefined>();
   const [nextActivity, setNextActivity] = useState<Activity | undefined>();
-<<<<<<< HEAD
   const [courseActivities, setCourseActivities] = useState<Activity[]>([]);
   const [difficultyLevels, setDifficultyLevels] = useState<DifficultyLevel[]>([]);
   const [attempts, setAttempts] = useState<ProgressAttempt[]>([]);
   const [completionSummary, setCompletionSummary] = useState<LevelProgressSummary | null>(null);
-=======
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -206,13 +155,10 @@ export function ActivityPage() {
   useEffect(() => {
     setActivity(undefined);
     setNextActivity(undefined);
-<<<<<<< HEAD
     setCourseActivities([]);
     setDifficultyLevels([]);
     setAttempts([]);
     setCompletionSummary(null);
-=======
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
     setCurrentIndex(0);
     setSelected(null);
     setCorrectAnswers(0);
@@ -236,17 +182,12 @@ export function ActivityPage() {
         const response = await educationService.getActivity(activityId);
 
         if (response) {
-<<<<<<< HEAD
           const [allActivitiesResponse, levelsResponse, attemptsResponse] = await Promise.all([
-=======
-          const [allActivities, levels, attempts] = await Promise.all([
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
             educationService.getActivities(response.subjectId, activeStudent.grade),
             educationService.getDifficultyLevels(),
             educationService.getAttempts(activeStudent.id)
           ]);
 
-<<<<<<< HEAD
           if (!canOpenActivity(response, allActivitiesResponse, levelsResponse, attemptsResponse)) {
             throw new Error('Nivel bloqueado: debes completar al menos el 75% del nivel anterior.');
           }
@@ -255,13 +196,6 @@ export function ActivityPage() {
           setDifficultyLevels(levelsResponse);
           setAttempts(attemptsResponse);
           setNextActivity(findNextAvailableActivity(response, allActivitiesResponse, levelsResponse, attemptsResponse));
-=======
-          if (!canOpenActivity(response, allActivities, levels, attempts)) {
-            throw new Error('Nivel bloqueado: primero completa el nivel anterior o logra nota mínima de 15/20.');
-          }
-
-          setNextActivity(findNextActivity(response, allActivities, levels));
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
         }
 
         setActivity(response);
@@ -279,11 +213,7 @@ export function ActivityPage() {
 
   const result = useMemo(() => {
     if (!activity) {
-<<<<<<< HEAD
       return { score: 0, totalQuestions: 0, correctAnswers: 0, stars: 0 };
-=======
-      return { score: 0, note20: 0, stars: 0 };
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
     }
 
     if (gameResult) {
@@ -292,28 +222,17 @@ export function ActivityPage() {
 
       return {
         score,
-<<<<<<< HEAD
         totalQuestions: gameResult.totalQuestions,
         correctAnswers: gameResult.correctAnswers,
-=======
-        note20: scoreToNote20(score),
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
         stars
       };
     }
 
     const totalQuestions = activity.questions.length || 1;
     const score = Math.round((correctAnswers / totalQuestions) * 100);
-<<<<<<< HEAD
     const stars = score >= 90 ? 3 : score >= 70 ? 2 : score > 0 ? 1 : 0;
 
     return { score, totalQuestions, correctAnswers, stars };
-=======
-    const note20 = scoreToNote20(score);
-    const stars = score >= 90 ? 3 : score >= 70 ? 2 : score > 0 ? 1 : 0;
-
-    return { score, note20, stars };
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   }, [activity, correctAnswers, gameResult]);
 
   if (loading) {
@@ -330,7 +249,6 @@ export function ActivityPage() {
 
   const homePath = activeStudent.level === 'inicial' ? '/inicial' : '/primaria';
 
-<<<<<<< HEAD
   async function finishActivity(finalScore: number, finalTotalQuestions: number, finalCorrectAnswers: number, finalStars: number) {
     if (!activity) return;
 
@@ -365,8 +283,6 @@ export function ActivityPage() {
     }
   }
 
-=======
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   async function handleSelect(value: string) {
     if (!activity || !question || finished || feedback) {
       return;
@@ -375,26 +291,6 @@ export function ActivityPage() {
     const activeQuestion = question;
     setSelected(value);
 
-<<<<<<< HEAD
-    const expectedAnswer = activeQuestion.correctAnswer ?? (activeQuestion as any).correct_answer;
-    const isCorrect = value === expectedAnswer || activeQuestion.type === 'match';
-
-    setFeedback(isCorrect ? 'correct' : 'wrong');
-
-    if (!isCorrect) {
-      return;
-    }
-
-    setCorrectAnswers((prev) => prev + 1);
-
-    setTimeout(async () => {
-      if (currentIndex + 1 >= activity.questions.length) {
-        const finalCorrect = correctAnswers + 1;
-        const finalScore = Math.round((finalCorrect / activity.questions.length) * 100);
-        const finalStars = finalScore >= 90 ? 3 : finalScore >= 70 ? 2 : finalScore > 0 ? 1 : 0;
-
-        await finishActivity(finalScore, activity.questions.length, finalCorrect, finalStars);
-=======
     const isCorrect = value === activeQuestion.correctAnswer || activeQuestion.type === 'match';
 
     setFeedback(isCorrect ? 'correct' : 'wrong');
@@ -409,29 +305,7 @@ export function ActivityPage() {
         const finalScore = Math.round((finalCorrect / activity.questions.length) * 100);
         const finalStars = finalScore >= 90 ? 3 : finalScore >= 70 ? 2 : finalScore > 0 ? 1 : 0;
 
-        try {
-          setSaveError(null);
-
-          await educationService.saveAttempt({
-            id: crypto.randomUUID(),
-            studentId: activeStudent.id,
-            activityId: activity.id,
-            subjectId: activity.subjectId,
-            difficulty: activity.difficulty,
-            score: finalScore,
-            totalQuestions: activity.questions.length,
-            correctAnswers: finalCorrect,
-            stars: finalStars,
-            completedAt: new Date().toISOString()
-          });
-
-          refresh();
-        } catch (error) {
-          setSaveError(error instanceof Error ? error.message : 'No se pudo guardar el avance.');
-        } finally {
-          setFinished(true);
-        }
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
+        await finishActivity(finalScore, activity.questions.length, finalCorrect, finalStars);
       } else {
         setCurrentIndex((prev) => prev + 1);
         setSelected(null);
@@ -440,14 +314,6 @@ export function ActivityPage() {
     }, 900);
   }
 
-<<<<<<< HEAD
-  function retryCurrentQuestion() {
-    setSelected(null);
-    setFeedback(null);
-  }
-
-=======
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   function completeMatching() {
     handleSelect('completed');
   }
@@ -471,32 +337,7 @@ export function ActivityPage() {
 
     setCorrectAnswers(finalCorrectAnswers);
 
-<<<<<<< HEAD
     await finishActivity(finalScore, finalTotalQuestions, finalCorrectAnswers, finalStars);
-=======
-    try {
-      setSaveError(null);
-
-      await educationService.saveAttempt({
-        id: crypto.randomUUID(),
-        studentId: activeStudent.id,
-        activityId: activity.id,
-        subjectId: activity.subjectId,
-        difficulty: activity.difficulty,
-        score: finalScore,
-        totalQuestions: finalTotalQuestions,
-        correctAnswers: finalCorrectAnswers,
-        stars: finalStars,
-        completedAt: new Date().toISOString()
-      });
-
-      refresh();
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'No se pudo guardar el avance.');
-    } finally {
-      setFinished(true);
-    }
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   }
 
   if (finished) {
@@ -513,7 +354,6 @@ export function ActivityPage() {
 
           <h1>¡Actividad completada!</h1>
 
-<<<<<<< HEAD
           {completionSummary && (
             <div className="completion-summary">
               <span className="eyebrow">Progreso real del nivel</span>
@@ -539,13 +379,6 @@ export function ActivityPage() {
             </p>
           )}
 
-=======
-          <p>
-            {activeStudent.name} obtuvo {result.note20}/20 ({result.score}%) y ganó{' '}
-            {'⭐'.repeat(result.stars) || 'una práctica valiosa'}.
-          </p>
-
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
           {saveError && <p className="activity-save-error">{saveError}</p>}
 
           <div className="result-actions">
@@ -559,11 +392,7 @@ export function ActivityPage() {
               </button>
             ) : (
               <Link className="primary-button" to={`/subject/${activity.subjectId}`}>
-<<<<<<< HEAD
                 Ver progreso del curso
-=======
-                Ver curso completado
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
               </Link>
             )}
 
@@ -672,13 +501,7 @@ export function ActivityPage() {
               <button
                 key={option.id}
                 type="button"
-<<<<<<< HEAD
-                className={`answer-button ${selected === option.value ? 'answer-button--selected' : ''} ${
-                  selected === option.value && feedback === 'wrong' ? 'answer-button--wrong' : ''
-                } ${selected === option.value && feedback === 'correct' ? 'answer-button--correct' : ''}`}
-=======
                 className={`answer-button ${selected === option.value ? 'answer-button--selected' : ''}`}
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
                 onClick={() => handleSelect(option.value)}
               >
                 {option.image && <span>{option.image}</span>}
@@ -690,19 +513,7 @@ export function ActivityPage() {
 
         {feedback && (
           <div className={`feedback feedback--${feedback}`}>
-<<<<<<< HEAD
-            {feedback === 'correct' ? '¡Excelente! 🎉' : 'Respuesta incorrecta. Reintenta esta pregunta 💪'}
-          </div>
-        )}
-
-        {feedback === 'wrong' && (
-          <div className="retry-actions">
-            <button className="primary-button" type="button" onClick={retryCurrentQuestion}>
-              Reintentar
-            </button>
-=======
             {feedback === 'correct' ? '¡Excelente! 🎉' : 'Casi, vuelve a practicar 💪'}
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
           </div>
         )}
       </motion.article>

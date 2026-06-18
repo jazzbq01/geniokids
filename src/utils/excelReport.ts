@@ -116,11 +116,7 @@ function buildSubjectSections(subject: Subject, activities: Activity[], attempts
     ['Actividades resueltas', completed.length],
     ['Actividades aprobadas', approved.length],
     ['Promedio del curso /20', averageNote],
-<<<<<<< HEAD
     ['Regla de avance', 'Completar mínimo el 75% del nivel anterior para desbloquear el siguiente']
-=======
-    ['Regla de avance', 'Mínimo 15/20 o 75% para superar el nivel']
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   ];
 
   const levelRows: ExcelCellValue[][] = [[
@@ -143,11 +139,7 @@ function buildSubjectSections(subject: Subject, activities: Activity[], attempts
       ? Math.round(levelCompleted.reduce((sum, activity) => sum + scoreToNote20(best.get(activity.id)?.score ?? 0), 0) / levelCompleted.length)
       : 0;
     const advance = levelActivities.length ? Math.round((levelCompleted.length / levelActivities.length) * 100) : 0;
-<<<<<<< HEAD
     const passed = advance >= 75;
-=======
-    const passed = levelAverage >= MIN_PASSING_NOTE || levelCompleted.length === levelActivities.length;
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 
     levelRows.push([
       `${level.icon} ${level.stageLabel} - ${level.name}`,
@@ -212,11 +204,7 @@ function buildSummarySheet(input: CourseReportInput): WorksheetSection[] {
     ['Grado / edad', gradeLabels[student.grade] ?? student.grade],
     ['Nivel educativo', student.level === 'primaria' ? 'Primaria' : 'Inicial'],
     ['Fecha de exportación', new Date().toLocaleString('es-PE')],
-<<<<<<< HEAD
     ['Criterio de desbloqueo', 'Mínimo 75% de actividades completadas por nivel']
-=======
-    ['Criterio de aprobación', '15/20 o 75%']
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
   ];
 
   const courseRows: ExcelCellValue[][] = [[

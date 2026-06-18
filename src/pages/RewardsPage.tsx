@@ -75,11 +75,7 @@ function addInitialBadges(unlocked: Set<string>, attempts: ProgressAttempt[], gr
 
     initialLevelCodes.forEach((levelCode) => {
       const levelAttempts = subjectAttempts.filter((attempt) => attempt.difficulty === levelCode);
-<<<<<<< HEAD
       const levelPassed = levelAttempts.length >= 38; // 75% de los niveles iniciales de 50 misiones
-=======
-      const levelPassed = levelAttempts.length >= 50 || averagePercent(levelAttempts) >= 75;
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
       if (levelPassed) unlocked.add(`badge-${gradePrefix}-${badgeCode}-${levelCode}`);
     });
   });

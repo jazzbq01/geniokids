@@ -9,11 +9,7 @@ Esta versión reinicia la arquitectura para trabajar de forma limpia con:
 - Sexo del hijo e icono automático según sexo y etapa.
 - Medallas cargadas desde Supabase.
 - Niveles en acordeón, comprimidos por defecto.
-<<<<<<< HEAD
 - Desbloqueo por mérito: completar mínimo el **75% de actividades** del nivel anterior.
-=======
-- Desbloqueo por mérito: completar nivel anterior o lograr promedio mínimo de **15/20**.
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 - Botón **Terminar por ahora** para que el niño avance poco a poco.
 
 ---
@@ -143,11 +139,7 @@ Regla:
 
 ```txt
 El siguiente nivel se desbloquea si el nivel anterior está completado al 100%
-<<<<<<< HEAD
 cuando completa al menos el 75% de actividades del nivel anterior.
-=======
-o si logra promedio mínimo de 15/20, equivalente a 75%.
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 ```
 
 Los niveles aparecen como acordeón y todos inician comprimidos. Los niveles bloqueados no se despliegan.
@@ -211,11 +203,7 @@ Esta versión incluye una carga curricular de **Matemática 1.º primaria** basa
 - 50 actividades por nivel.
 - 250 actividades en total.
 - 1 punto por actividad.
-<<<<<<< HEAD
 - Desbloqueo por mínimo **75% de actividades completadas** en el nivel anterior.
-=======
-- Desbloqueo por promedio mínimo **15/20** o por completar el nivel anterior.
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
 
 Archivo recomendado para cargar solo este curso sin borrar usuarios:
 

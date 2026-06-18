@@ -17,11 +17,7 @@ export function ActivityCard({ activity, difficultyLevel, completed = false, loc
           {difficultyLevel ? `${difficultyLevel.icon} ${difficultyLevel.shortName}` : activity.difficulty}
         </span>
         <h3>{activity.title}</h3>
-<<<<<<< HEAD
         <p>{locked ? 'Bloqueada: completa al menos el 75% del nivel anterior.' : activity.description}</p>
-=======
-        <p>{locked ? 'Bloqueada: completa o aprueba el nivel anterior con nota mínima 15.' : activity.description}</p>
->>>>>>> 676f2e59bc23dde938b9ec0b6df86099c6e75694
       </div>
       <strong>{locked ? '🔒' : completed ? '✅' : `${activity.points} pt`}</strong>
     </>
