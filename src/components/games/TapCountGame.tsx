@@ -13,9 +13,10 @@ type Props = {
   activity: any;
   question: any;
   onComplete: (result: GameResult) => void;
+  onFail?: () => void;
 };
 
-export default function TapCountGame({ activity, question, onComplete }: Props) {
+export default function TapCountGame({ activity, question, onComplete, onFail }: Props) {
   const config = question?.gameConfig ?? question?.game_config ?? {};
   const activityConfig = activity?.gameConfig ?? activity?.game_config ?? {};
 
@@ -61,6 +62,7 @@ export default function TapCountGame({ activity, question, onComplete }: Props) 
 
     setMessage('Cuenta otra vez con calma.');
     playAudio(audio.error);
+    onFail?.();
   }
 
   return (

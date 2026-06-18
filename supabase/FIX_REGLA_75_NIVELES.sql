@@ -1,8 +1,8 @@
 -- =============================================================
 -- GenioKids - Fix regla de desbloqueo por 75% del nivel anterior
 -- Ejecutar en Supabase SQL Editor sobre una base ya creada.
--- Objetivo: impedir que un estudiante registre intentos en un nivel
--- superior si no completó al menos el 75% del nivel anterior.
+-- Objetivo: impedir saltos de nivel y saltos dentro del bloque.
+-- Exige 75% del nivel anterior, ruta lineal por orden y actividad correcta.
 -- =============================================================
 
 create or replace function public.enforce_level_75_unlock()
@@ -17,12 +17,15 @@ declare
   v_previous_total int := 0;
   v_previous_completed int := 0;
   v_required_completed int := 0;
+  v_next_activity_id text;
+  v_next_activity_order int;
 begin
   select
     a.id,
     a.subject_id,
     a.grade,
     a.difficulty_level_id,
+    a.order_number as activity_order,
     dl.order_number as level_order
   into v_activity
   from public.activities a
@@ -57,56 +60,72 @@ begin
   new.correct_answers := greatest(0, coalesce(new.correct_answers, 0));
   new.stars := greatest(0, least(3, coalesce(new.stars, 0)));
 
-  -- El primer nivel siempre está habilitado.
-  if v_activity.level_order <= 1 then
-    return new;
+  -- Una misión solo cuenta como completada si fue resuelta correctamente.
+  if new.total_questions <= 0 or new.correct_answers < new.total_questions or new.score < 100 then
+    raise exception 'Actividad no completada: debes resolver correctamente la misión antes de avanzar.';
   end if;
 
-  select dl.id into v_previous_level_id
-  from public.difficulty_levels dl
-  where dl.order_number = v_activity.level_order - 1
-    and dl.is_active = true
-  limit 1;
+  -- Regla 75%: desde el segundo nivel, se exige avance mínimo en el nivel anterior.
+  if v_activity.level_order > 1 then
+    select dl.id into v_previous_level_id
+    from public.difficulty_levels dl
+    where dl.order_number = v_activity.level_order - 1
+      and dl.is_active = true
+    limit 1;
 
-  if v_previous_level_id is null then
-    return new;
+    if v_previous_level_id is not null then
+      select count(*) into v_previous_total
+      from public.activities a
+      where a.subject_id = v_activity.subject_id
+        and a.grade = v_activity.grade
+        and a.difficulty_level_id = v_previous_level_id
+        and a.is_active = true;
+
+      if coalesce(v_previous_total, 0) > 0 then
+        select count(distinct aa.activity_id) into v_previous_completed
+        from public.activity_attempts aa
+        join public.activities a on a.id = aa.activity_id
+        where aa.student_id = new.student_id
+          and a.subject_id = v_activity.subject_id
+          and a.grade = v_activity.grade
+          and a.difficulty_level_id = v_previous_level_id
+          and a.is_active = true;
+
+        v_required_completed := ceiling(v_previous_total * 0.75)::int;
+
+        if v_previous_completed < v_required_completed then
+          raise exception 'Nivel bloqueado: debes completar al menos el 75%% del nivel anterior (% de % misiones).',
+            v_required_completed,
+            v_previous_total;
+        end if;
+      end if;
+    end if;
   end if;
 
-  select count(*) into v_previous_total
+  -- Regla lineal dentro del bloque: solo se puede guardar la siguiente misión pendiente.
+  select a.id, a.order_number
+  into v_next_activity_id, v_next_activity_order
   from public.activities a
   where a.subject_id = v_activity.subject_id
     and a.grade = v_activity.grade
-    and a.difficulty_level_id = v_previous_level_id
+    and a.difficulty_level_id = v_activity.difficulty_level_id
     and a.is_active = true
-    and (
-      (coalesce(aa.total_questions, 0) > 0 and coalesce(aa.correct_answers, 0) >= coalesce(aa.total_questions, 0))
-      or coalesce(aa.score, 0) >= 100
-    );
+    and not exists (
+      select 1
+      from public.activity_attempts aa
+      where aa.student_id = new.student_id
+        and aa.activity_id = a.id
+    )
+  order by a.order_number asc, a.id asc
+  limit 1;
 
-  -- Si no hay actividades configuradas en el nivel anterior, no bloqueamos para evitar deadlock curricular.
-  if coalesce(v_previous_total, 0) = 0 then
-    return new;
+  if v_next_activity_id is null then
+    raise exception 'Nivel completo: no hay misiones pendientes en este bloque.';
   end if;
 
-  select count(distinct aa.activity_id) into v_previous_completed
-  from public.activity_attempts aa
-  join public.activities a on a.id = aa.activity_id
-  where aa.student_id = new.student_id
-    and a.subject_id = v_activity.subject_id
-    and a.grade = v_activity.grade
-    and a.difficulty_level_id = v_previous_level_id
-    and a.is_active = true
-    and (
-      (coalesce(aa.total_questions, 0) > 0 and coalesce(aa.correct_answers, 0) >= coalesce(aa.total_questions, 0))
-      or coalesce(aa.score, 0) >= 100
-    );
-
-  v_required_completed := ceiling(v_previous_total * 0.75)::int;
-
-  if v_previous_completed < v_required_completed then
-    raise exception 'Nivel bloqueado: debes completar al menos el 75%% del nivel anterior (% de % misiones).',
-      v_required_completed,
-      v_previous_total;
+  if new.activity_id <> v_next_activity_id then
+    raise exception 'Actividad bloqueada: debes completar primero la misión % de este nivel.',
+      v_next_activity_order;
   end if;
 
   return new;

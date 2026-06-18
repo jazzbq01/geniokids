@@ -1,64 +1,49 @@
 import { Link, useParams } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { ActivityCard } from '../components/ActivityCard';
 import { EmptyState } from '../components/EmptyState';
 import { useStudent } from '../context/StudentContext';
 import { educationService } from '../services/educationService';
 import type { Activity, Difficulty, DifficultyLevel, Lesson, ProgressAttempt, Subject } from '../types/education';
-import {
-  MIN_PREVIOUS_LEVEL_PERCENT,
-  countPassedActivities,
-  getActivityProgressStatus,
-  getPassedActivityIds,
-  requiredActivitiesFor75,
-  scoreToPercent
-} from '../utils/progress';
 import './SubjectPage.css';
 
-const MIN_PASSING_NOTE = 15;
+const MIN_PREVIOUS_LEVEL_PERCENT = 75;
 
-function scoreToNote20(score: number) {
-  if (score <= 20) return Math.max(0, Math.min(20, Math.round(score)));
-  return Math.max(0, Math.min(20, Math.round((score / 100) * 20)));
+function getCompletedIds(attempts: ProgressAttempt[]) {
+  return new Set(attempts.map((attempt) => attempt.activityId));
+}
+
+function sortActivitiesByOrder(items: Activity[]) {
+  return items.slice().sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+}
+
+function getNextPendingActivity(levelActivities: Activity[], completedIds: Set<string>) {
+  return sortActivitiesByOrder(levelActivities).find((activity) => !completedIds.has(activity.id));
 }
 
 function levelStats(levelActivities: Activity[], attempts: ProgressAttempt[]) {
-  const bestByActivity = new Map<string, ProgressAttempt>();
-
-  attempts.forEach((attempt) => {
-    const current = bestByActivity.get(attempt.activityId);
-    const currentScore = current ? scoreToPercent(current.score) : -1;
-    const incomingScore = scoreToPercent(attempt.score);
-    if (!current || incomingScore > currentScore) bestByActivity.set(attempt.activityId, attempt);
-  });
-
-  const completed = countPassedActivities(levelActivities, attempts);
-  const notes = levelActivities
-    .map((activity) => bestByActivity.get(activity.id))
-    .filter((attempt): attempt is ProgressAttempt => Boolean(attempt))
-    .map((attempt) => scoreToNote20(attempt.score));
-
-  const averageNote = notes.length ? Math.round(notes.reduce((sum, note) => sum + note, 0) / notes.length) : 0;
-  const averagePercent = notes.length ? Math.round((averageNote / 20) * 100) : 0;
+  const completedIds = getCompletedIds(attempts);
+  const completed = levelActivities.filter((activity) => completedIds.has(activity.id)).length;
   const total = levelActivities.length;
   const percent = total ? Math.round((completed / total) * 100) : 0;
-  const requiredCompleted = requiredActivitiesFor75(total);
+  const requiredCompleted = total ? Math.ceil((total * MIN_PREVIOUS_LEVEL_PERCENT) / 100) : 0;
   const passedByCompletion = completed >= total && total > 0;
   const passedByRequiredCompletion = requiredCompleted > 0 && completed >= requiredCompleted;
-  const passedByScore = averageNote >= MIN_PASSING_NOTE && notes.length > 0;
 
   return {
     completed,
     total,
     requiredCompleted,
-    averageNote,
-    averagePercent,
     percent,
     passed: passedByRequiredCompletion,
     passedByCompletion,
-    passedByRequiredCompletion,
-    passedByScore
+    passedByRequiredCompletion
   };
+}
+
+function missionLabel(activity?: Activity) {
+  if (!activity) return 'misión pendiente';
+  return `Misión ${String(activity.order).padStart(2, '0')}`;
 }
 
 export function SubjectPage() {
@@ -69,6 +54,7 @@ export function SubjectPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [levels, setLevels] = useState<DifficultyLevel[]>([]);
   const [attempts, setAttempts] = useState<ProgressAttempt[]>([]);
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
   const [openLevel, setOpenLevel] = useState<Difficulty | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +79,7 @@ export function SubjectPage() {
         setActivities(activitiesResponse);
         setLevels(levelResponse);
         setAttempts(attemptsResponse);
+        setFailedIds(new Set(educationService.getFailedActivityIds(activeStudent.id)));
       } catch (error) {
         setError(error instanceof Error ? error.message : 'No se pudo cargar el curso.');
       } finally {
@@ -103,22 +90,28 @@ export function SubjectPage() {
     loadSubjectData();
   }, [subjectId, activeStudent.grade, activeStudent.id, refreshSignal]);
 
-  const completedIds = useMemo(() => getPassedActivityIds(attempts), [attempts]);
+  const completedIds = useMemo(() => getCompletedIds(attempts), [attempts]);
 
   const levelState = useMemo(() => {
-    const state = new Map<Difficulty, { unlocked: boolean; stats: ReturnType<typeof levelStats>; previous?: ReturnType<typeof levelStats> }>();
+    const state = new Map<Difficulty, {
+      unlocked: boolean;
+      stats: ReturnType<typeof levelStats>;
+      previous?: ReturnType<typeof levelStats>;
+      nextPending?: Activity;
+    }>();
     let previousStats: ReturnType<typeof levelStats> | undefined;
 
     levels.forEach((level, index) => {
       const levelActivities = activities.filter((activity) => activity.difficulty === level.id);
       const stats = levelStats(levelActivities, attempts);
+      const nextPending = getNextPendingActivity(levelActivities, completedIds);
       const unlocked = index === 0 || Boolean(previousStats?.passed);
-      state.set(level.id, { unlocked, stats, previous: previousStats });
+      state.set(level.id, { unlocked, stats, previous: previousStats, nextPending });
       previousStats = stats;
     });
 
     return state;
-  }, [levels, activities, attempts]);
+  }, [levels, activities, attempts, completedIds]);
 
   if (loading) return <EmptyState title="Cargando curso" detail="Consultando niveles, misiones y progreso desde Supabase..." />;
   if (error) return <EmptyState title="No se pudo cargar" detail={error} />;
@@ -132,7 +125,7 @@ export function SubjectPage() {
 
   return (
     <section className="subject-page page">
-      <header className="page-hero subject-hero" style={{ '--subject-color': subject.color } as React.CSSProperties}>
+      <header className="page-hero subject-hero" style={{ '--subject-color': subject.color } as CSSProperties}>
         <div>
           <span className="eyebrow">{subject.icon} Curso gamificado</span>
           <h1>{subject.name}</h1>
@@ -145,7 +138,7 @@ export function SubjectPage() {
         <div>
           <span className="eyebrow">Ruta bloqueada por mérito</span>
           <h2>{completedActivities}/{totalActivities} misiones completadas</h2>
-          <p>Para desbloquear el siguiente nivel: completa al menos el {MIN_PREVIOUS_LEVEL_PERCENT}% del nivel anterior. La nota queda como rendimiento académico; el avance y el desbloqueo se miden por actividades completadas.</p>
+          <p>La ruta ahora es lineal: solo se habilita la siguiente misión pendiente. Para abrir un nivel superior se necesita completar al menos el {MIN_PREVIOUS_LEVEL_PERCENT}% del nivel anterior.</p>
           <p>Meta del curso: {totalPoints} puntos. Avance actual: {earnedPoints} puntos.</p>
         </div>
         <div className="progress-ring">
@@ -172,28 +165,31 @@ export function SubjectPage() {
         <div className="activity-list-title">
           <div>
             <h2>Actividades por nivel</h2>
-            <p>Todos los niveles inician comprimidos. Abre solo el nivel disponible y avanza a tu ritmo.</p>
+            <p>Solo la siguiente misión pendiente queda habilitada. Las futuras se abren una por una.</p>
           </div>
         </div>
 
         {levels.map((level) => {
-          const levelActivities = activities.filter((activity) => activity.difficulty === level.id);
+          const levelActivities = sortActivitiesByOrder(activities.filter((activity) => activity.difficulty === level.id));
           const state = levelState.get(level.id);
           if (!levelActivities.length || !state) return null;
 
           const locked = !state.unlocked;
           const isOpen = !locked && openLevel === level.id;
           const previous = state.previous;
+          const nextPending = state.nextPending;
           const unlockReason = state.stats.passedByCompletion
             ? 'Nivel completado al 100%.'
             : state.stats.passedByRequiredCompletion
-              ? `Nivel habilitado: completó ${state.stats.completed}/${state.stats.total} misiones (${state.stats.percent}%).`
+              ? `75% cumplido: completó ${state.stats.completed}/${state.stats.total} misiones. El siguiente nivel ya puede abrirse, pero esta ruta sigue avanzando de una misión en una.`
               : locked && previous
                 ? `Bloqueado: el nivel anterior tiene ${previous.completed}/${previous.total} misiones (${previous.percent}%). Necesita ${previous.requiredCompleted} misiones como mínimo.`
-                : 'En progreso. Completa al menos el 75% para habilitar el siguiente nivel.';
+                : nextPending
+                  ? `Siguiente disponible: ${missionLabel(nextPending)}. Las demás se desbloquean después.`
+                  : 'En progreso. Completa al menos el 75% para habilitar el siguiente nivel.';
 
           return (
-            <article className={`level-section ${locked ? 'level-section--locked' : ''}`} key={level.id} style={{ '--level-color': level.color } as React.CSSProperties}>
+            <article className={`level-section ${locked ? 'level-section--locked' : ''}`} key={level.id} style={{ '--level-color': level.color } as CSSProperties}>
               <button
                 className="level-section__header level-accordion-button"
                 type="button"
@@ -210,7 +206,7 @@ export function SubjectPage() {
                 <div className="level-progress">
                   <strong>{state.stats.completed}/{levelActivities.length}</strong>
                   <span>Meta {state.stats.requiredCompleted}/{levelActivities.length} · {state.stats.percent}%</span>
-                  <small>{state.stats.passed ? '75% cumplido ✅' : locked ? 'Por desbloquear' : `Faltan ${Math.max(state.stats.requiredCompleted - state.stats.completed, 0)} misiones`}</small>
+                  <small>{state.stats.passed ? '75% cumplido ✅' : locked ? 'Por desbloquear' : `Sigue: ${missionLabel(nextPending)}`}</small>
                 </div>
                 <span className="accordion-caret">{locked ? '🔒' : isOpen ? '▲' : '▼'}</span>
               </button>
@@ -219,15 +215,28 @@ export function SubjectPage() {
 
               {isOpen && (
                 <div className="activity-grid level-accordion-content">
-                  {levelActivities.map((activity) => (
-                    <ActivityCard
-                      key={activity.id}
-                      activity={activity}
-                      difficultyLevel={level}
-                      status={getActivityProgressStatus(activity.id, attempts)}
-                      locked={locked}
-                    />
-                  ))}
+                  {levelActivities.map((activity) => {
+                    const completed = completedIds.has(activity.id);
+                    const isCurrent = !completed && nextPending?.id === activity.id;
+                    const failed = isCurrent && failedIds.has(activity.id);
+                    const activityLocked = !completed && !isCurrent;
+                    const lockedReason = locked
+                      ? `Bloqueada: completa al menos el ${MIN_PREVIOUS_LEVEL_PERCENT}% del nivel anterior.`
+                      : `Bloqueada: primero completa ${missionLabel(nextPending)}.`;
+
+                    return (
+                      <ActivityCard
+                        key={activity.id}
+                        activity={activity}
+                        difficultyLevel={level}
+                        completed={completed}
+                        failed={failed}
+                        current={isCurrent}
+                        locked={activityLocked || locked}
+                        lockedReason={lockedReason}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </article>

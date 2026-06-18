@@ -486,6 +486,18 @@ export const educationService = {
     return (data ?? []).map(mapAttempt);
   },
 
+  getFailedActivityIds(studentId: string): string[] {
+    return localStore.getFailedActivityIds(studentId);
+  },
+
+  markActivityFailed(studentId: string, activityId: string) {
+    localStore.markActivityFailed(studentId, activityId);
+  },
+
+  clearActivityFailure(studentId: string, activityId: string) {
+    localStore.clearActivityFailure(studentId, activityId);
+  },
+
   async getBadges(): Promise<Badge[]> {
     if (!isSupabaseConfigured || !supabase) return badges;
 

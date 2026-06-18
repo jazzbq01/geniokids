@@ -13,9 +13,10 @@ type Props = {
   activity: any;
   question: any;
   onComplete: (result: GameResult) => void;
+  onFail?: () => void;
 };
 
-export default function VisualChoiceGame({ activity, question, onComplete }: Props) {
+export default function VisualChoiceGame({ activity, question, onComplete, onFail }: Props) {
   const config = question?.gameConfig ?? question?.game_config ?? {};
   const activityConfig = activity?.gameConfig ?? activity?.game_config ?? {};
 
@@ -61,6 +62,7 @@ export default function VisualChoiceGame({ activity, question, onComplete }: Pro
 
     setMessage('Mira otra vez e intenta de nuevo.');
     playAudio(audio.error);
+    onFail?.();
   }
 
   return (

@@ -1,10 +1,10 @@
 import { activities, demoStudents } from '../data/demoContent';
 import type { ProgressAttempt, Student } from '../types/education';
-import { isAttemptPassed } from '../utils/progress';
 
 const STUDENTS_KEY = 'geniokids_students';
 const ACTIVE_STUDENT_KEY = 'geniokids_active_student';
 const ATTEMPTS_KEY = 'geniokids_attempts';
+const FAILED_ACTIVITIES_KEY = 'geniokids_failed_activities';
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -59,17 +59,37 @@ export const localStore = {
   saveAttempt(attempt: ProgressAttempt) {
     const attempts = this.getAttempts();
     write(ATTEMPTS_KEY, [attempt, ...attempts]);
+    this.clearActivityFailure(attempt.studentId, attempt.activityId);
+  },
+
+  getFailedActivityIds(studentId: string): string[] {
+    const failures = read<{ studentId: string; activityId: string; failedAt: string }[]>(FAILED_ACTIVITIES_KEY, []);
+    return failures
+      .filter((item) => item.studentId === studentId)
+      .map((item) => item.activityId);
+  },
+
+  markActivityFailed(studentId: string, activityId: string) {
+    const failures = read<{ studentId: string; activityId: string; failedAt: string }[]>(FAILED_ACTIVITIES_KEY, []);
+    const filtered = failures.filter((item) => !(item.studentId === studentId && item.activityId === activityId));
+    write(FAILED_ACTIVITIES_KEY, [{ studentId, activityId, failedAt: new Date().toISOString() }, ...filtered]);
+  },
+
+  clearActivityFailure(studentId: string, activityId: string) {
+    const failures = read<{ studentId: string; activityId: string; failedAt: string }[]>(FAILED_ACTIVITIES_KEY, []);
+    write(FAILED_ACTIVITIES_KEY, failures.filter((item) => !(item.studentId === studentId && item.activityId === activityId)));
   },
 
   resetDemo() {
     localStorage.removeItem(STUDENTS_KEY);
     localStorage.removeItem(ACTIVE_STUDENT_KEY);
     localStorage.removeItem(ATTEMPTS_KEY);
+    localStorage.removeItem(FAILED_ACTIVITIES_KEY);
     this.seed();
   },
 
   getCompletedActivities(studentId: string) {
     const attempts = this.getAttempts().filter((item) => item.studentId === studentId);
-    return activities.filter((activity) => attempts.some((attempt) => attempt.activityId === activity.id && isAttemptPassed(attempt))); 
+    return activities.filter((activity) => attempts.some((attempt) => attempt.activityId === activity.id));
   }
 };

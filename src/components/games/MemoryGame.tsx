@@ -13,6 +13,7 @@ type Props = {
   activity: any;
   question: any;
   onComplete: (result: GameResult) => void;
+  onFail?: () => void;
 };
 
 type MemoryCard = {
@@ -29,7 +30,7 @@ function shuffleCards(cards: MemoryCard[]) {
     .map((item) => item.card);
 }
 
-export default function MemoryGame({ activity, question, onComplete }: Props) {
+export default function MemoryGame({ activity, question, onComplete, onFail }: Props) {
   const config = question?.gameConfig ?? question?.game_config ?? {};
   const activityConfig = activity?.gameConfig ?? activity?.game_config ?? {};
 
@@ -113,6 +114,7 @@ export default function MemoryGame({ activity, question, onComplete }: Props) {
           setLocked(false);
           setMessage('Sigue intentando.');
           playAudio(audio.error);
+          onFail?.();
         }, 800);
       }
     }

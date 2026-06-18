@@ -13,9 +13,10 @@ type Props = {
   activity: any;
   question: any;
   onComplete: (result: GameResult) => void;
+  onFail?: () => void;
 };
 
-export default function ShapeSortGame({ activity, question, onComplete }: Props) {
+export default function ShapeSortGame({ activity, question, onComplete, onFail }: Props) {
   const config = question?.gameConfig ?? question?.game_config ?? {};
   const activityConfig = activity?.gameConfig ?? activity?.game_config ?? {};
 
@@ -52,6 +53,7 @@ export default function ShapeSortGame({ activity, question, onComplete }: Props)
     if (target.accepts !== selectedItem.type) {
       setMessage('Casi. Esa no es su caja. Intenta otra vez.');
       playAudio(audio.error);
+      onFail?.();
       return;
     }
 

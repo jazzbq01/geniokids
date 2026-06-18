@@ -1,25 +1,36 @@
 import { Link } from 'react-router-dom';
 import type { Activity, DifficultyLevel } from '../types/education';
-import type { ActivityProgressStatus } from '../utils/progress';
 
 type ActivityCardProps = {
   activity: Activity;
   difficultyLevel?: DifficultyLevel;
-  status?: ActivityProgressStatus;
+  completed?: boolean;
   locked?: boolean;
+  failed?: boolean;
+  current?: boolean;
+  lockedReason?: string;
 };
 
-export function ActivityCard({ activity, difficultyLevel, status = 'pending', locked = false }: ActivityCardProps) {
-  const completed = status === 'completed';
-  const retry = status === 'retry';
-  const statusLabel = locked
-    ? 'Bloqueada: completa al menos el 75% del nivel anterior.'
-    : retry
-      ? 'Intento fallido: reintenta hasta responder correctamente.'
-      : completed
-        ? 'Completada correctamente.'
-        : activity.description;
-  const statusIcon = locked ? '🔒' : completed ? '✅' : retry ? '❌' : `${activity.points} pt`;
+export function ActivityCard({
+  activity,
+  difficultyLevel,
+  completed = false,
+  locked = false,
+  failed = false,
+  current = false,
+  lockedReason
+}: ActivityCardProps) {
+  const statusText = completed
+    ? 'Completada correctamente.'
+    : failed
+      ? 'Con error: reintenta esta misión para poder avanzar.'
+      : locked
+        ? lockedReason ?? 'Bloqueada: completa primero la misión anterior.'
+        : current
+          ? 'Disponible: esta es la siguiente misión pendiente.'
+          : activity.description;
+
+  const statusIcon = completed ? '✅' : failed ? '⚠️' : locked ? '🔒' : '▶️';
 
   const content = (
     <>
@@ -29,22 +40,23 @@ export function ActivityCard({ activity, difficultyLevel, status = 'pending', lo
           {difficultyLevel ? `${difficultyLevel.icon} ${difficultyLevel.shortName}` : activity.difficulty}
         </span>
         <h3>{activity.title}</h3>
-        <p>{statusLabel}</p>
+        <p>{statusText}</p>
       </div>
       <strong>{statusIcon}</strong>
     </>
   );
 
-  if (locked) {
-    return <div className="activity-card activity-card--locked">{content}</div>;
+  const className = [
+    'activity-card',
+    completed ? 'activity-card--done' : '',
+    locked ? 'activity-card--locked' : '',
+    failed ? 'activity-card--failed' : '',
+    current ? 'activity-card--current' : ''
+  ].filter(Boolean).join(' ');
+
+  if (locked || completed) {
+    return <div className={className}>{content}</div>;
   }
 
-  return (
-    <Link
-      to={`/activity/${activity.id}`}
-      className={`activity-card ${completed ? 'activity-card--done' : ''} ${retry ? 'activity-card--retry' : ''}`}
-    >
-      {content}
-    </Link>
-  );
+  return <Link to={`/activity/${activity.id}`} className={className}>{content}</Link>;
 }

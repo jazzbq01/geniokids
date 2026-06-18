@@ -5,7 +5,6 @@ import { EmptyState } from '../components/EmptyState';
 import { useStudent } from '../context/StudentContext';
 import { educationService } from '../services/educationService';
 import type { Badge, Grade, ProgressAttempt } from '../types/education';
-import { isAttemptPassed, scoreToPercent } from '../utils/progress';
 import './RewardsPage.css';
 
 
@@ -53,6 +52,11 @@ function badgeBelongsToStudentGrade(badge: Badge, grade: Grade) {
   return badgeGrade === grade;
 }
 
+function scoreToPercent(score: number) {
+  if (score <= 20) return Math.round((score / 20) * 100);
+  return score;
+}
+
 function averagePercent(attempts: ProgressAttempt[]) {
   if (!attempts.length) return 0;
   return Math.round(attempts.reduce((sum, attempt) => sum + scoreToPercent(attempt.score), 0) / attempts.length);
@@ -78,32 +82,31 @@ function addInitialBadges(unlocked: Set<string>, attempts: ProgressAttempt[], gr
 }
 
 function computeUnlocked(attempts: ProgressAttempt[], grade: Grade) {
-  const passedAttempts = attempts.filter(isAttemptPassed);
   const unlocked = new Set<string>();
-  const totalStars = passedAttempts.reduce((sum, attempt) => sum + attempt.stars, 0);
+  const totalStars = attempts.reduce((sum, attempt) => sum + attempt.stars, 0);
 
-  if (passedAttempts.length >= 1) unlocked.add('badge-first-mission');
-  if (passedAttempts.length >= 10) unlocked.add('badge-10-missions');
-  if (passedAttempts.length >= 20) unlocked.add('badge-20-level');
-  if (passedAttempts.length >= 50) {
+  if (attempts.length >= 1) unlocked.add('badge-first-mission');
+  if (attempts.length >= 10) unlocked.add('badge-10-missions');
+  if (attempts.length >= 20) unlocked.add('badge-20-level');
+  if (attempts.length >= 50) {
     unlocked.add('badge-50-missions');
     unlocked.add('badge-50-level');
   }
-  if (passedAttempts.filter((attempt) => attempt.subjectId === 'mat-primaria').length >= 100) unlocked.add('badge-100-math1');
-  if (passedAttempts.filter((attempt) => attempt.subjectId === 'mat-primaria').length >= 250) unlocked.add('badge-250-math1');
-  if (passedAttempts.some((attempt) => scoreToPercent(attempt.score) >= 100)) unlocked.add('badge-perfect-score');
+  if (attempts.filter((attempt) => attempt.subjectId === 'mat-primaria').length >= 100) unlocked.add('badge-100-math1');
+  if (attempts.filter((attempt) => attempt.subjectId === 'mat-primaria').length >= 250) unlocked.add('badge-250-math1');
+  if (attempts.some((attempt) => scoreToPercent(attempt.score) >= 100)) unlocked.add('badge-perfect-score');
   if (totalStars >= 30) unlocked.add('badge-star-collector');
-  if (passedAttempts.some((attempt) => attempt.subjectId.includes('mat') && scoreToPercent(attempt.score) >= 80)) unlocked.add('badge-math-genius');
-  if (passedAttempts.some((attempt) => attempt.subjectId.includes('com'))) unlocked.add('badge-reader');
-  if (passedAttempts.some((attempt) => attempt.subjectId.includes('eng'))) unlocked.add('badge-english');
-  if (passedAttempts.some((attempt) => attempt.subjectId.includes('sci') || attempt.subjectId.includes('ciencia'))) unlocked.add('badge-science');
-  if (passedAttempts.some((attempt) => attempt.difficulty === 'semilla')) unlocked.add('badge-semilla');
-  if (passedAttempts.some((attempt) => attempt.difficulty === 'explorador')) unlocked.add('badge-explorador');
-  if (passedAttempts.some((attempt) => attempt.difficulty === 'aventurero')) unlocked.add('badge-aventurero');
-  if (passedAttempts.some((attempt) => attempt.difficulty === 'estrella')) unlocked.add('badge-estrella');
-  if (passedAttempts.some((attempt) => attempt.difficulty === 'maestro')) unlocked.add('badge-master-genius');
+  if (attempts.some((attempt) => attempt.subjectId.includes('mat') && scoreToPercent(attempt.score) >= 80)) unlocked.add('badge-math-genius');
+  if (attempts.some((attempt) => attempt.subjectId.includes('com'))) unlocked.add('badge-reader');
+  if (attempts.some((attempt) => attempt.subjectId.includes('eng'))) unlocked.add('badge-english');
+  if (attempts.some((attempt) => attempt.subjectId.includes('sci') || attempt.subjectId.includes('ciencia'))) unlocked.add('badge-science');
+  if (attempts.some((attempt) => attempt.difficulty === 'semilla')) unlocked.add('badge-semilla');
+  if (attempts.some((attempt) => attempt.difficulty === 'explorador')) unlocked.add('badge-explorador');
+  if (attempts.some((attempt) => attempt.difficulty === 'aventurero')) unlocked.add('badge-aventurero');
+  if (attempts.some((attempt) => attempt.difficulty === 'estrella')) unlocked.add('badge-estrella');
+  if (attempts.some((attempt) => attempt.difficulty === 'maestro')) unlocked.add('badge-master-genius');
 
-  addInitialBadges(unlocked, passedAttempts, grade);
+  addInitialBadges(unlocked, attempts, grade);
   return unlocked;
 }
 
@@ -146,7 +149,6 @@ export function RewardsPage() {
     () => badges.filter((badge) => badgeBelongsToStudentGrade(badge, activeStudent.grade)),
     [badges, activeStudent.grade]
   );
-  const passedAttempts = useMemo(() => attempts.filter(isAttemptPassed), [attempts]);
   const unlocked = useMemo(() => computeUnlocked(attempts, activeStudent.grade), [attempts, activeStudent.grade]);
   const unlockedCount = visibleBadges.filter((badge) => unlocked.has(badge.id)).length;
   const homePath = activeStudent.level === 'inicial' ? '/inicial' : '/primaria';
@@ -177,11 +179,11 @@ export function RewardsPage() {
 
       <section className="rewards-summary">
         <article>
-          <strong>{passedAttempts.length}</strong>
+          <strong>{attempts.length}</strong>
           <span>misiones completadas</span>
         </article>
         <article>
-          <strong>{passedAttempts.reduce((sum, attempt) => sum + attempt.stars, 0)}</strong>
+          <strong>{attempts.reduce((sum, attempt) => sum + attempt.stars, 0)}</strong>
           <span>estrellas ganadas</span>
         </article>
         <article>

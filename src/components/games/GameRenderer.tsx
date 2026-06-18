@@ -15,29 +15,30 @@ type Props = {
   activity: any;
   question: any;
   onComplete: (result: GameResult) => void;
+  onFail?: () => void;
 };
 
-export default function GameRenderer({ activity, question, onComplete }: Props) {
+export default function GameRenderer({ activity, question, onComplete, onFail }: Props) {
   const gameType = activity?.game_type || question?.game_config?.game;
 
   if (gameType === 'shape_sort') {
-    return <ShapeSortGame activity={activity} question={question} onComplete={onComplete} />;
+    return <ShapeSortGame activity={activity} question={question} onComplete={onComplete} onFail={onFail} />;
   }
 
   if (gameType === 'color_sort') {
-    return <ColorSortGame activity={activity} question={question} onComplete={onComplete} />;
+    return <ColorSortGame activity={activity} question={question} onComplete={onComplete} onFail={onFail} />;
   }
 
   if (gameType === 'tap_count') {
-    return <TapCountGame activity={activity} question={question} onComplete={onComplete} />;
+    return <TapCountGame activity={activity} question={question} onComplete={onComplete} onFail={onFail} />;
   }
 
   if (gameType === 'memory_game') {
-    return <MemoryGame activity={activity} question={question} onComplete={onComplete} />;
+    return <MemoryGame activity={activity} question={question} onComplete={onComplete} onFail={onFail} />;
   }
 
   if (gameType === 'visual_choice') {
-    return <VisualChoiceGame activity={activity} question={question} onComplete={onComplete} />;
+    return <VisualChoiceGame activity={activity} question={question} onComplete={onComplete} onFail={onFail} />;
   }
 
   return (

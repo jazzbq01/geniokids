@@ -158,11 +158,6 @@
   border-color: #86efac;
 }
 
-.activity-card--retry {
-  background: #fff7ed;
-  border-color: #fdba74;
-}
-
 .mission-number {
   display: inline-flex;
   margin-right: 0.4rem;
@@ -290,4 +285,20 @@
   .accordion-caret {
     justify-self: start;
   }
+}
+
+.activity-card--current {
+  border-color: color-mix(in srgb, var(--level-color, #6366f1) 55%, white);
+  background: #eef2ff;
+  box-shadow: 0 14px 28px rgba(79, 70, 229, 0.12);
+}
+
+.activity-card--failed {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+
+.activity-card--failed p,
+.activity-card--failed strong {
+  color: #c2410c;
 }

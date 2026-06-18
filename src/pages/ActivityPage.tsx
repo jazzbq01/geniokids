@@ -6,8 +6,9 @@ import GameRenderer from '../components/games/GameRenderer';
 import { useStudent } from '../context/StudentContext';
 import { educationService } from '../services/educationService';
 import type { Activity, DifficultyLevel, ProgressAttempt } from '../types/education';
-import { countPassedActivities, isAttemptPassed, requiredActivitiesFor75 } from '../utils/progress';
 import './ActivityPage.css';
+
+const MIN_PREVIOUS_LEVEL_PERCENT = 75;
 
 type GameResult = {
   score: number;
@@ -28,11 +29,80 @@ type LevelProgressSummary = {
   subjectPercent: number;
 };
 
+function getCompletedIds(attempts: ProgressAttempt[]) {
+  return new Set(attempts.map((attempt) => attempt.activityId));
+}
+
+function sortActivitiesByOrder(items: Activity[]) {
+  return items.slice().sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+}
+
+function countCompletedActivities(levelActivities: Activity[], attempts: ProgressAttempt[]) {
+  const completedActivities = getCompletedIds(attempts);
+  return levelActivities.filter((activity) => completedActivities.has(activity.id)).length;
+}
+
 function isLevelPassed(levelActivities: Activity[], attempts: ProgressAttempt[]) {
-  const completed = countPassedActivities(levelActivities, attempts);
-  const requiredCompleted = requiredActivitiesFor75(levelActivities.length);
+  const completed = countCompletedActivities(levelActivities, attempts);
+  const requiredCompleted = levelActivities.length
+    ? Math.ceil((levelActivities.length * MIN_PREVIOUS_LEVEL_PERCENT) / 100)
+    : 0;
 
   return requiredCompleted > 0 && completed >= requiredCompleted;
+}
+
+function missionLabel(activity?: Activity) {
+  if (!activity) return 'la siguiente misión pendiente';
+  return `Misión ${String(activity.order).padStart(2, '0')}`;
+}
+
+function getActivityAccess(
+  activity: Activity,
+  allActivities: Activity[],
+  levels: DifficultyLevel[],
+  attempts: ProgressAttempt[]
+) {
+  const completedIds = getCompletedIds(attempts);
+  const currentLevelIndex = levels.findIndex((level) => level.id === activity.difficulty);
+
+  if (currentLevelIndex < 0) {
+    return { canOpen: false, reason: 'Nivel no configurado para esta actividad.' };
+  }
+
+  if (currentLevelIndex > 0) {
+    const previousLevel = levels[currentLevelIndex - 1];
+    const previousActivities = allActivities.filter((item) => item.difficulty === previousLevel.id);
+
+    if (!isLevelPassed(previousActivities, attempts)) {
+      const previousCompleted = countCompletedActivities(previousActivities, attempts);
+      const requiredCompleted = previousActivities.length
+        ? Math.ceil((previousActivities.length * MIN_PREVIOUS_LEVEL_PERCENT) / 100)
+        : 0;
+
+      return {
+        canOpen: false,
+        reason: `Nivel bloqueado: debes completar ${requiredCompleted}/${previousActivities.length} misiones del nivel anterior. Ahora llevas ${previousCompleted}/${previousActivities.length}.`
+      };
+    }
+  }
+
+  const levelActivities = sortActivitiesByOrder(allActivities.filter((item) => item.difficulty === activity.difficulty));
+  const nextPending = levelActivities.find((item) => !completedIds.has(item.id));
+
+  if (!nextPending) {
+    return { canOpen: false, reason: 'Este nivel ya está completo. Continúa con otra ruta disponible.' };
+  }
+
+  if (nextPending.id !== activity.id) {
+    return {
+      canOpen: false,
+      reason: completedIds.has(activity.id)
+        ? `Esta misión ya fue completada. Continúa con ${missionLabel(nextPending)}.`
+        : `Ruta lineal: primero debes completar ${missionLabel(nextPending)}.`
+    };
+  }
+
+  return { canOpen: true, reason: 'Actividad habilitada.' };
 }
 
 function canOpenActivity(
@@ -41,16 +111,7 @@ function canOpenActivity(
   levels: DifficultyLevel[],
   attempts: ProgressAttempt[]
 ) {
-  const currentLevelIndex = levels.findIndex((level) => level.id === activity.difficulty);
-
-  if (currentLevelIndex <= 0) {
-    return true;
-  }
-
-  const previousLevel = levels[currentLevelIndex - 1];
-  const previousActivities = allActivities.filter((item) => item.difficulty === previousLevel.id);
-
-  return isLevelPassed(previousActivities, attempts);
+  return getActivityAccess(activity, allActivities, levels, attempts).canOpen;
 }
 
 function orderedActivities(allActivities: Activity[], levels: DifficultyLevel[]) {
@@ -87,12 +148,12 @@ function buildLevelProgressSummary(
   attempts: ProgressAttempt[]
 ): LevelProgressSummary {
   const levelActivities = allActivities.filter((item) => item.difficulty === currentActivity.difficulty);
-  const levelCompleted = countPassedActivities(levelActivities, attempts);
+  const levelCompleted = countCompletedActivities(levelActivities, attempts);
   const levelTotal = levelActivities.length;
   const levelPercent = levelTotal ? Math.round((levelCompleted / levelTotal) * 100) : 0;
-  const requiredCompleted = requiredActivitiesFor75(levelTotal);
+  const requiredCompleted = levelTotal ? Math.ceil((levelTotal * MIN_PREVIOUS_LEVEL_PERCENT) / 100) : 0;
   const remainingForUnlock = Math.max(requiredCompleted - levelCompleted, 0);
-  const subjectCompleted = countPassedActivities(allActivities, attempts);
+  const subjectCompleted = countCompletedActivities(allActivities, attempts);
   const subjectTotal = allActivities.length;
   const subjectPercent = subjectTotal ? Math.round((subjectCompleted / subjectTotal) * 100) : 0;
 
@@ -139,7 +200,6 @@ export function ActivityPage() {
   const [finished, setFinished] = useState(false);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
-  const [retrySaving, setRetrySaving] = useState(false);
 
   useEffect(() => {
     setActivity(undefined);
@@ -155,7 +215,6 @@ export function ActivityPage() {
     setFeedback(null);
     setSaveError(null);
     setGameResult(null);
-    setRetrySaving(false);
   }, [activityId]);
 
   useEffect(() => {
@@ -178,8 +237,9 @@ export function ActivityPage() {
             educationService.getAttempts(activeStudent.id)
           ]);
 
-          if (!canOpenActivity(response, allActivitiesResponse, levelsResponse, attemptsResponse)) {
-            throw new Error('Nivel bloqueado: debes completar al menos el 75% del nivel anterior.');
+          const access = getActivityAccess(response, allActivitiesResponse, levelsResponse, attemptsResponse);
+          if (!access.canOpen) {
+            throw new Error(access.reason);
           }
 
           setCourseActivities(allActivitiesResponse);
@@ -239,8 +299,8 @@ export function ActivityPage() {
 
   const homePath = activeStudent.level === 'inicial' ? '/inicial' : '/primaria';
 
-  async function saveAttemptRecord(finalScore: number, finalTotalQuestions: number, finalCorrectAnswers: number, finalStars: number) {
-    if (!activity) return null;
+  async function finishActivity(finalScore: number, finalTotalQuestions: number, finalCorrectAnswers: number, finalStars: number) {
+    if (!activity) return;
 
     const attempt: ProgressAttempt = {
       id: crypto.randomUUID(),
@@ -259,24 +319,17 @@ export function ActivityPage() {
       setSaveError(null);
 
       await educationService.saveAttempt(attempt);
+      educationService.clearActivityFailure(activeStudent.id, activity.id);
 
       const updatedAttempts = [...attempts, attempt];
       setAttempts(updatedAttempts);
       setCompletionSummary(buildLevelProgressSummary(activity, courseActivities, updatedAttempts));
       setNextActivity(findNextAvailableActivity(activity, courseActivities, difficultyLevels, updatedAttempts));
       refresh();
-      return updatedAttempts;
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : 'No se pudo guardar el avance.');
       setCompletionSummary(buildLevelProgressSummary(activity, courseActivities, attempts));
-      return null;
-    }
-  }
-
-  async function finishActivity(finalScore: number, finalTotalQuestions: number, finalCorrectAnswers: number, finalStars: number) {
-    const updatedAttempts = await saveAttemptRecord(finalScore, finalTotalQuestions, finalCorrectAnswers, finalStars);
-
-    if (updatedAttempts?.some((attempt) => attempt.activityId === activity?.id && isAttemptPassed(attempt))) {
+    } finally {
       setFinished(true);
     }
   }
@@ -295,13 +348,7 @@ export function ActivityPage() {
     setFeedback(isCorrect ? 'correct' : 'wrong');
 
     if (!isCorrect) {
-      const totalQuestions = activity.questions.length || 1;
-      const partialCorrect = correctAnswers;
-      const partialScore = Math.round((partialCorrect / totalQuestions) * 100);
-
-      setRetrySaving(true);
-      await saveAttemptRecord(partialScore, totalQuestions, partialCorrect, 0);
-      setRetrySaving(false);
+      educationService.markActivityFailed(activeStudent.id, activity.id);
       return;
     }
 
@@ -341,6 +388,12 @@ export function ActivityPage() {
     const finalTotalQuestions = Math.max(1, payload.totalQuestions);
     const finalCorrectAnswers = Math.max(0, payload.correctAnswers);
 
+    if (finalCorrectAnswers < finalTotalQuestions || finalScore < 100) {
+      educationService.markActivityFailed(activeStudent.id, activity.id);
+      setSaveError('Actividad con error: reintenta hasta completarla correctamente. No se habilitará la siguiente misión.');
+      return;
+    }
+
     setGameResult({
       score: finalScore,
       totalQuestions: finalTotalQuestions,
@@ -350,12 +403,12 @@ export function ActivityPage() {
 
     setCorrectAnswers(finalCorrectAnswers);
 
-    if (finalCorrectAnswers >= finalTotalQuestions) {
-      await finishActivity(finalScore, finalTotalQuestions, finalCorrectAnswers, finalStars);
-      return;
-    }
+    await finishActivity(finalScore, finalTotalQuestions, finalCorrectAnswers, finalStars);
+  }
 
-    await saveAttemptRecord(finalScore, finalTotalQuestions, finalCorrectAnswers, 0);
+  function handleGameFail() {
+    if (!activity) return;
+    educationService.markActivityFailed(activeStudent.id, activity.id);
   }
 
   if (finished) {
@@ -449,29 +502,12 @@ export function ActivityPage() {
           </div>
         </header>
 
-        {gameResult && gameResult.correctAnswers < gameResult.totalQuestions ? (
-          <article className="question-card">
-            <h2>Necesita reintentar esta misión</h2>
-            <p className="question-helper">
-              Resultado: {gameResult.correctAnswers}/{gameResult.totalQuestions}. Esta actividad queda marcada con ❌ y no suma al 75% hasta completarla correctamente.
-            </p>
-            {saveError && <p className="activity-save-error">{saveError}</p>}
-            <div className="retry-actions">
-              <button className="primary-button" type="button" onClick={() => setGameResult(null)}>
-                Reintentar
-              </button>
-              <Link className="secondary-button" to={`/subject/${activity.subjectId}`}>
-                Volver al acordeón
-              </Link>
-            </div>
-          </article>
-        ) : (
-          <GameRenderer
-            activity={activity}
-            question={question}
-            onComplete={handleGameComplete}
-          />
-        )}
+        <GameRenderer
+          activity={activity}
+          question={question}
+          onComplete={handleGameComplete}
+          onFail={handleGameFail}
+        />
       </section>
     );
   }
@@ -557,10 +593,7 @@ export function ActivityPage() {
 
         {feedback === 'wrong' && (
           <div className="retry-actions">
-            <p className="retry-status">
-              {retrySaving ? 'Guardando intento fallido...' : 'Esta misión queda marcada con ❌ hasta que responda correctamente.'}
-            </p>
-            <button className="primary-button" type="button" onClick={retryCurrentQuestion} disabled={retrySaving}>
+            <button className="primary-button" type="button" onClick={retryCurrentQuestion}>
               Reintentar
             </button>
           </div>
