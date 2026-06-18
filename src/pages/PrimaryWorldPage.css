@@ -1,0 +1,42 @@
+.primary-hero {
+  background: linear-gradient(135deg, #6c5ce7, #74b9ff);
+  color: white;
+}
+
+.primary-hero p {
+  color: rgba(255, 255, 255, .9);
+}
+
+.primary-roadmap {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.primary-roadmap article {
+  padding: 20px;
+  border-radius: 24px;
+  background: white;
+  box-shadow: 0 14px 40px rgba(39, 39, 80, .07);
+}
+
+.primary-roadmap strong,
+.primary-roadmap span {
+  display: block;
+}
+
+.primary-roadmap strong {
+  font-size: 1.1rem;
+}
+
+.primary-roadmap span {
+  color: #636e72;
+  margin-top: 6px;
+}
+
+@media (max-width: 760px) {
+  .primary-roadmap {
+    grid-template-columns: 1fr;
+  }
+}

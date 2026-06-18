@@ -1,0 +1,23 @@
+.reports-hero {
+  background: linear-gradient(135deg, #00b894, #55efc4);
+}
+
+.report-export-note {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 1px solid rgba(0, 184, 148, 0.25);
+  border-radius: 18px;
+  background: rgba(0, 184, 148, 0.08);
+  color: #263238;
+  line-height: 1.55;
+}
+
+.report-table-card,
+.parent-insights {
+  margin-top: 24px;
+}
+
+.report-table-card .muted {
+  margin-top: -6px;
+  color: #667085;
+}

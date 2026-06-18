@@ -1,0 +1,40 @@
+.initial-hero {
+  background: linear-gradient(135deg, #fd79a8, #ffeaa7);
+}
+
+.initial-mission {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.initial-mission article {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 24px;
+  background: white;
+  box-shadow: 0 14px 40px rgba(39, 39, 80, .07);
+}
+
+.initial-mission strong {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #fd79a8;
+  color: white;
+}
+
+.initial-mission span {
+  font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  .initial-mission {
+    grid-template-columns: 1fr;
+  }
+}

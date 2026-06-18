@@ -1,0 +1,14 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.env
+.env.local
+.env.production
+android/.gradle
+android/app/build
+android/build
+android/capacitor-cordova-android-plugins/build
+.vscode/*
+!.vscode/extensions.json

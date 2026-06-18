@@ -1,0 +1,15 @@
+.dashboard-hero {
+  background: linear-gradient(135deg, #a29bfe, #81ecec);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.3fr .8fr;
+  gap: 24px;
+}
+
+@media (max-width: 920px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

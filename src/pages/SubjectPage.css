@@ -1,0 +1,288 @@
+.subject-hero {
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--subject-color) 45%, transparent), transparent 35%),
+    linear-gradient(135deg, #ffffff, #f5f7ff);
+}
+
+.subject-progress-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.2rem;
+  border-radius: 26px;
+  background: linear-gradient(135deg, #111827, #312e81);
+  color: white;
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.18);
+  margin-bottom: 1.4rem;
+}
+
+.subject-progress-panel h2,
+.subject-progress-panel p {
+  margin: 0.3rem 0;
+}
+
+.progress-ring {
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.16);
+  border: 8px solid rgba(255, 255, 255, 0.28);
+  text-align: center;
+}
+
+.progress-ring strong {
+  font-size: 1.5rem;
+}
+
+.progress-ring span {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.lesson-list,
+.activity-list {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+
+.lesson-item {
+  background: white;
+  border-left: 6px solid #dfe6e9;
+  border-radius: 20px;
+  padding: 1rem;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+}
+
+.lesson-item p {
+  margin-bottom: 0;
+  color: #64748b;
+}
+
+.level-section {
+  border-radius: 28px;
+  background: white;
+  padding: 1rem;
+  border: 2px solid color-mix(in srgb, var(--level-color) 32%, white);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+}
+
+.level-section__header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.level-icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  background: color-mix(in srgb, var(--level-color) 22%, white);
+}
+
+.level-section__header h3,
+.level-section__header p {
+  margin: 0.2rem 0;
+}
+
+.level-section__header p {
+  color: #64748b;
+}
+
+.level-progress {
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 0.7rem 1rem;
+  min-width: 90px;
+}
+
+.level-progress strong {
+  display: block;
+  font-size: 1.3rem;
+}
+
+.level-progress span {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.level-bar {
+  margin: 1rem 0;
+  height: 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  overflow: hidden;
+}
+
+.level-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--level-color), #111827);
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.activity-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid #e5e7eb;
+  background: #fbfdff;
+  border-radius: 20px;
+  padding: 0.9rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.activity-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
+}
+
+.activity-card--done {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.mission-number {
+  display: inline-flex;
+  margin-right: 0.4rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.activity-card h3 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.activity-card p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.55rem;
+  color: #111827;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+@media (max-width: 760px) {
+  .subject-progress-panel,
+  .level-section__header {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-ring,
+  .level-progress {
+    justify-self: start;
+  }
+}
+
+.level-accordion-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.level-accordion-button:disabled {
+  cursor: not-allowed;
+}
+
+.level-section--locked {
+  opacity: 0.72;
+  filter: grayscale(0.25);
+}
+
+.lesson-item--locked {
+  background: #f8f9fb;
+  opacity: 0.7;
+}
+
+.level-progress small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #636e72;
+  font-weight: 700;
+}
+
+.level-accordion-content {
+  animation: accordionIn 0.22s ease-out;
+}
+
+.activity-card--locked {
+  cursor: not-allowed;
+  color: #636e72;
+  background: #f1f2f6 !important;
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.activity-card--locked .pill {
+  background: #b2bec3 !important;
+}
+
+@keyframes accordionIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.activity-list-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.activity-list-title p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+}
+
+.level-section__header {
+  grid-template-columns: auto 1fr auto auto;
+}
+
+.accordion-caret {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #475569;
+}
+
+.level-unlock-note {
+  margin: -0.25rem 0 0.9rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .level-section__header {
+    grid-template-columns: 1fr;
+  }
+
+  .accordion-caret {
+    justify-self: start;
+  }
+}
